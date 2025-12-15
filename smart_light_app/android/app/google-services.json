@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "933147146808",
+    "project_id": "smartlight-68b42",
+    "storage_bucket": "smartlight-68b42.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:933147146808:android:b113b02c1f782e6867c4cd",
+        "android_client_info": {
+          "package_name": "com.example.smart_light_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmyreNq61VGd834PB-lgpszFlquVkwA7g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

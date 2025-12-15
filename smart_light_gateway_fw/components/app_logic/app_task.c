@@ -1,0 +1,73 @@
+// components/app_logic/app_task.c
+
+#include "app_event_handler.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "sys_event_queue.h"
+#include "esp_log.h"
+#include "wifi_manager.h"
+#include "sys_nvs.h"
+#include "task_config.h"
+
+static const char *TAG = "APP_TASK";
+
+/**
+ * @brief Tác vụ chính của ứng dụng, chứa vòng lặp sự kiện.
+ */
+static void app_main_task(void *arg) {
+    ESP_LOGI(TAG, "Tác vụ logic ứng dụng đã bắt đầu.");
+    app_event_t startup_event = { .type = EVENT_SYSTEM_STARTUP };
+    sys_event_queue_send(&startup_event);
+
+    app_event_t event;
+    for (;;) {
+        if (sys_event_queue_receive(&event, portMAX_DELAY) == ESP_OK) {
+            ESP_LOGI(TAG, "nhận được sự kiện: %d", event.type);
+            switch (event.type) {
+                case EVENT_SYSTEM_STARTUP:
+                    ESP_LOGI(TAG, "Sự kiện: Hệ thống khởi động.");
+                    break;
+                
+                case EVENT_NETWORK_CONNECTED:
+                    handle_network_connected();
+                    break;
+        
+                case EVENT_NETWORK_DISCONNECTED:
+                    handle_network_disconnected();
+                    break;
+
+                case EVENT_MESH_PROV_COMPLETE:
+                    ESP_LOGI(TAG, "Sự kiện: Provisioning hoàn tất.");
+                    // vTaskDelay(pdMS_TO_TICKS(9000));
+                    // wifi_manager_connect_start("Cam-hub","0913456789");
+                    wifi_manager_connect_start("phantai","26102004");
+                    break;
+                    
+                case EVENT_MESH_GENERIC_ONOFF_SET_RECEIVED:
+                    handle_onoff_set_event(&event.data.onoff_set);
+                    break;
+
+                default:
+                    ESP_LOGW(TAG, "Sự kiện không xác định: %d", event.type);
+                    break;
+            }
+        }
+    }
+}
+
+esp_err_t app_logic_init(void) {
+    if (sys_event_queue_init() != ESP_OK) {
+        ESP_LOGE(TAG, "Khởi tạo hàng đợi sự kiện thất bại. Dừng chương trình.");
+        return ESP_FAIL;
+    }
+    BaseType_t res = xTaskCreatePinnedToCore(app_main_task, app_logic_task_config.name, app_logic_task_config.stack_size, NULL, app_logic_task_config.priority, NULL, app_logic_task_config.core_id);
+    if (res != pdPASS) {
+        ESP_LOGE(TAG, "Tạo tác vụ logic chính thất bại!");
+        return ESP_FAIL;
+    }
+
+    
+
+    ESP_LOGI(TAG, "Khởi tạo App Logic thành công.");
+    return ESP_OK;
+}

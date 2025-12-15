@@ -1,0 +1,101 @@
+/*
+ * sys_event_queue.c - Triển khai Hàng đợi sự kiện hệ thống
+ */
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+#include "esp_log.h"
+#include "sys_event_queue.h" // Nhúng file header công khai
+
+#define TAG "SYS_EVENT_QUEUE"
+
+// --- Các định nghĩa cấu hình cho hàng đợi ---
+#define EVENT_QUEUE_LENGTH    10 // Số lượng sự kiện tối đa có thể chứa trong hàng đợi
+#define EVENT_QUEUE_ITEM_SIZE sizeof(app_event_t)
+
+// Biến static để giữ handle của hàng đợi.
+// Nó là riêng tư, không thể truy cập từ bên ngoài file này.
+static QueueHandle_t app_event_queue = NULL;
+
+/*
+ * =====================================================================================
+ * CÁC HÀM API CÔNG KHAI (được định nghĩa trong sys_event_queue.h)
+ * =====================================================================================
+ */
+
+esp_err_t sys_event_queue_init(void)
+{
+    if (app_event_queue) {
+        // Hàng đợi đã được khởi tạo rồi
+        return ESP_OK;
+    }
+
+    ESP_LOGI(TAG, "Đang khởi tạo hàng đợi sự kiện hệ thống (kích thước: %d)", EVENT_QUEUE_LENGTH);
+    app_event_queue = xQueueCreate(EVENT_QUEUE_LENGTH, EVENT_QUEUE_ITEM_SIZE);
+
+    if (app_event_queue == NULL) {
+        ESP_LOGE(TAG, "Không thể tạo hàng đợi sự kiện!");
+        return ESP_FAIL;
+    }
+
+    return ESP_OK;
+}
+
+bool sys_event_queue_send(const app_event_t *event)
+{
+    if (app_event_queue == NULL) {
+        ESP_LOGE(TAG, "Hàng đợi chưa được khởi tạo!");
+        return false;
+    }
+    
+    // Gửi một bản sao của sự kiện vào hàng đợi.
+    // Tham số cuối cùng (0) có nghĩa là không chờ nếu hàng đợi đầy, trả về lỗi ngay.
+    if (xQueueSend(app_event_queue, event, 0) != pdPASS) {
+        ESP_LOGW(TAG, "Không thể gửi sự kiện vào hàng đợi. Hàng đợi có thể đã đầy.");
+        return false;
+    }
+
+    return true;
+}
+
+bool sys_event_queue_send_from_isr(const app_event_t *event)
+{
+    if (app_event_queue == NULL) {
+        // Không thể log từ ISR, nhưng đây là một lỗi nghiêm trọng
+        return false;
+    }
+
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+    // Sử dụng phiên bản an toàn cho ISR của xQueueSend.
+    // Nó không block và có thể đánh thức một tác vụ có độ ưu tiên cao hơn.
+    if (xQueueSendFromISR(app_event_queue, event, &xHigherPriorityTaskWoken) != pdPASS) {
+        // Hàng đợi đầy
+        return false;
+    }
+
+    // Nếu việc gửi sự kiện đã đánh thức một tác vụ có độ ưu tiên cao hơn,
+    // chúng ta cần yêu cầu chuyển ngữ cảnh ngay lập tức.
+    if (xHigherPriorityTaskWoken) {
+        portYIELD_FROM_ISR();
+    }
+    
+    return true;
+}
+
+bool sys_event_queue_receive(app_event_t *event, TickType_t timeout)
+{
+    if (app_event_queue == NULL) {
+        ESP_LOGE(TAG, "Hàng đợi chưa được khởi tạo!");
+        return false;
+    }
+
+    // Chờ để nhận một sự kiện từ hàng đợi.
+    // Hàm này sẽ block tác vụ cho đến khi có sự kiện hoặc hết timeout.
+    if (xQueueReceive(app_event_queue, event, timeout) != pdPASS) {
+        // Hết thời gian chờ, không có sự kiện nào
+        return false;
+    }
+
+    return true;
+}
