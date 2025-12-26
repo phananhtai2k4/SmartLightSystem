@@ -14,6 +14,7 @@
 #include "ble_mesh_core.h"
 #include "bluetooth_init.h"
 #include "cmd_test.h"
+#include "udp_service.h"
 
 static const char *TAG = "MAIN";
 
@@ -23,7 +24,7 @@ void app_main(void)
     ESP_ERROR_CHECK(nvs_storage_init());
     ESP_ERROR_CHECK(wifi_manager_init());
     cmd_test_start();
-
+    udp_service_init();
     esp_err_t app_init_result = app_logic_init();
 
     if (app_init_result != ESP_OK) {

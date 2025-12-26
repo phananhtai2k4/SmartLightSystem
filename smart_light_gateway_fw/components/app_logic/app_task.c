@@ -40,7 +40,13 @@ static void app_main_task(void *arg) {
                     ESP_LOGI(TAG, "Sự kiện: Provisioning hoàn tất.");
                     // vTaskDelay(pdMS_TO_TICKS(9000));
                     // wifi_manager_connect_start("Cam-hub","0913456789");
-                    wifi_manager_connect_start("phantai","26102004");
+                    char ssid[32];
+                    char pass[64];
+                    esp_err_t nvs_storage_read_wifi_creds(char *ssid, size_t ssid_len, char *pass, size_t pass_len);
+                    nvs_storage_read_wifi_creds(ssid, sizeof(ssid), pass, sizeof(pass)); // Chỉ để in ra log
+                    ESP_LOGI(TAG, "Đang kết nối Wi-Fi với SSID: %s", ssid);
+                    wifi_manager_connect_start(ssid, pass);
+                    
                     break;
                     
                 case EVENT_MESH_GENERIC_ONOFF_SET_RECEIVED:

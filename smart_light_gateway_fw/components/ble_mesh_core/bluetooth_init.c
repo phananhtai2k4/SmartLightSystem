@@ -77,6 +77,40 @@ esp_err_t bluetooth_init(void)
     vTaskDelay(pdMS_TO_TICKS(200));
     return ret;
 }
+esp_err_t bluetooth_deinit(void)
+{
+    esp_err_t ret = ESP_OK;
+
+    // Disable Bluedroid stack
+    ret = esp_bluedroid_disable();
+    if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
+        ESP_LOGE(TAG, "%s disable bluedroid failed", __func__);
+        return ret;
+    }
+
+    // Deinit Bluedroid stack
+    ret = esp_bluedroid_deinit();
+    if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
+        ESP_LOGE(TAG, "%s deinit bluedroid failed", __func__);
+        return ret;
+    }
+
+    // Disable BT controller
+    ret = esp_bt_controller_disable();
+    if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
+        ESP_LOGE(TAG, "%s disable controller failed", __func__);
+        return ret;
+    }
+
+    // Deinit BT controller
+    ret = esp_bt_controller_deinit();
+    if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
+        ESP_LOGE(TAG, "%s deinit controller failed", __func__);
+        return ret;
+    }
+
+    return ESP_OK;
+}
 #endif /* CONFIG_BT_BLUEDROID_ENABLED */
 
 #ifdef CONFIG_BT_NIMBLE_ENABLED

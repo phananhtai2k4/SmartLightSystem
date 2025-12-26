@@ -1,3 +1,6 @@
+
+
+
 // File: components/wifi_manager/wifi_manager.c
 //example: 
 #include "wifi_manager.h"
@@ -12,13 +15,19 @@
 #include "sys_nvs.h"
 #include "esp_wifi_types.h"
 #include "sys_event_queue.h"
+#include "nvs_flash.h"
+#include "esp_mac.h"
+#include "device_identity.h"
+#include "mqtt_service.h"
+#include "bluetooth_init.h"
+#include "udp_service.h"
 
 // --- Lấy từ cả hai ví dụ ---
 static const char *TAG = "WIFI_MANAGER";
 static char *s_ssid = NULL; // Biến toàn cục để lưu SSID
 static char *s_pass = NULL; // Biến toàn cục để lưu mật khẩu
 #define WIFI_MAXIMUM_RETRY  5 // Giới hạn số lần thử lại
-
+#define WIFI_AP_PASS      ""
 /* FreeRTOS event group để báo hiệu kết nối */
 static EventGroupHandle_t s_wifi_event_group;
 /* Các bit sự kiện */
@@ -27,6 +36,47 @@ static EventGroupHandle_t s_wifi_event_group;
 
 static int s_retry_num = 0;
 
+esp_err_t wifi_manager_switch_to_ap(void)
+{
+    ESP_LOGI(TAG, "Switching to AP mode...");
+    mqtt_service_stop_and_deinit();
+    bluetooth_deinit();
+    wifi_config_t wifi_config;
+    memset(&wifi_config, 0, sizeof(wifi_config));
+    strncpy((char*)wifi_config.ap.ssid, device_get_short_id(), sizeof(wifi_config.ap.ssid));
+    wifi_config.ap.ssid_len = strlen((char*)wifi_config.ap.ssid);
+	strncpy((char*)wifi_config.ap.password,  WIFI_AP_PASS, sizeof(wifi_config.ap.password));
+    wifi_config.ap.max_connection = 4;
+    wifi_config.ap.beacon_interval = 100;
+    wifi_config.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
+    if (strlen(WIFI_AP_PASS) == 0) {
+        wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+    }
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
+    ESP_ERROR_CHECK(esp_wifi_start());
+    ESP_LOGI(TAG, "AP started. SSID:%s", device_get_short_id());
+    ESP_LOGI(TAG, "Starting UDP service...");
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
+    udp_service_start();
+    return ESP_OK;
+}
+
+esp_err_t wifi_manager_switch_to_sta(const char *ssid, const char *pass)
+{
+    ESP_LOGI(TAG, "Switching to STA mode and connecting to SSID: %s", ssid);
+    ESP_ERROR_CHECK(esp_wifi_stop());
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    wifi_config_t wifi_config = {0};
+    strncpy((char*)wifi_config.sta.ssid, ssid, sizeof(wifi_config.sta.ssid) - 1);
+    strncpy((char*)wifi_config.sta.password, pass, sizeof(wifi_config.sta.password) - 1);
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+    ESP_ERROR_CHECK(esp_wifi_start());
+    ESP_ERROR_CHECK(esp_wifi_connect());
+    ESP_LOGI(TAG, "STA started and connecting...");
+    return ESP_OK;
+}
 // Event handler này bây giờ chỉ làm nhiệm vụ log và thử kết nối lại.
 // Nó không cần event group nữa vì trạng thái sẽ được quản lý bởi các module cấp cao hơn (như Blufi).
 static void event_handler(void* arg, esp_event_base_t event_base,
@@ -51,6 +101,14 @@ static void event_handler(void* arg, esp_event_base_t event_base,
         ESP_LOGI(TAG, "Mạng đã sẵn sàng (qua Wi-Fi).");
         app_event_t app_evt = { .type = EVENT_NETWORK_CONNECTED };
         sys_event_queue_send(&app_evt);
+    } else if (event_id == WIFI_EVENT_AP_STACONNECTED) {
+        wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
+        ESP_LOGI(TAG, "station "MACSTR" join, AID=%d",
+                 MAC2STR(event->mac), event->aid);
+    } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
+        wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
+        ESP_LOGI(TAG, "station "MACSTR" leave, AID=%d, reason=%d",
+                 MAC2STR(event->mac), event->aid, event->reason);
     }
 }
 
@@ -60,6 +118,7 @@ esp_err_t wifi_manager_init(void)
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     esp_netif_create_default_wifi_sta();
+	esp_netif_create_default_wifi_ap();
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
@@ -101,6 +160,7 @@ esp_err_t wifi_manager_connect_start(const char *ssid, const char *pass)
 
     ESP_LOGI(TAG, "Setting Wi-Fi configuration SSID [%s]...", wifi_config.sta.ssid);
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+	esp_wifi_set_max_tx_power(80);
     ESP_ERROR_CHECK(esp_wifi_start());
 
     return ESP_OK;

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include "esp_err.h"
 #include "ble_mesh_core.h"
+#include "wifi_manager.h"
 
 
 static const char *TAG = "CMD_TEST_HANDLERS";
@@ -38,9 +39,11 @@ static int _cmd_test_handler(int argc, char **argv)
             err = ble_mesh_core_node_prov_enable();
             break;
         case 3:
+            wifi_manager_switch_to_ap();
             err = ESP_OK;
             break;
         case 4:
+            wifi_manager_switch_to_sta("HO", "678967896789");
             err = ESP_OK;
             break;
         case 5:

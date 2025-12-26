@@ -39,3 +39,21 @@ void wifi_manager_disconnect(void);
  * @return esp_err_t ESP_OK nếu nhận được địa chỉ IP, hoặc mã lỗi khác nếu thất bại.
  */
 esp_err_t wifi_manager_wait_for_ip(void);
+
+/**
+ * @brief Chuyển sang chế độ Access Point (AP).
+ *
+ * Hàm này sẽ cấu hình thiết bị ở chế độ AP với SSID và mật khẩu mặc định từ sdkconfig.
+ * @return ESP_OK nếu thành công, hoặc mã lỗi nếu thất bại.
+ */
+esp_err_t wifi_manager_switch_to_ap(void);
+
+/**
+ * @brief Chuyển sang chế độ STA và kết nối với Wi-Fi chỉ định.
+ *
+ * Hàm này sẽ chuyển sang chế độ STA và kết nối với SSID, mật khẩu cung cấp.
+ * @param ssid SSID của Wi-Fi cần kết nối.
+ * @param pass Mật khẩu của Wi-Fi cần kết nối.
+ * @return ESP_OK nếu thành công, hoặc mã lỗi nếu thất bại.
+ */
+esp_err_t wifi_manager_switch_to_sta(const char *ssid, const char *pass);
