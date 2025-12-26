@@ -1,12 +1,13 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Import này để lắng nghe trạng thái
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'constants.dart';
 import 'providers/user_provider.dart';
+import 'providers/home_provider.dart';
 import 'screens/auth/login_screen.dart';
-import 'screens/home/dashboard_screen.dart';
+import 'screens/home/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,11 +22,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // Đăng ký Provider tại đây
         ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => HomeProvider()),
       ],
       child: MaterialApp(
-        title: 'IoT Smart Home',
+        title: 'Smart Light',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           primaryColor: AppConstants.primaryColor,
@@ -44,8 +45,8 @@ class MyApp extends StatelessWidget {
               );
             }
             if (snapshot.hasData) {
-              // Đã đăng nhập -> Vào Dashboard
-              return const DashboardScreen();
+              // Đã đăng nhập -> Vào MainScreen với BottomNavBar
+              return const MainScreen();
             }
             // Chưa đăng nhập -> Vào Login
             return const LoginScreen();

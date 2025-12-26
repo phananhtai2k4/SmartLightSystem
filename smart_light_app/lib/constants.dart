@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
 class AppConstants {
-  // === 1. MQTT CONFIG (Lấy từ HiveMQ Cluster của bạn) ===
-  // Bạn vào HiveMQ Cloud -> Clusters -> Overview để lấy thông tin này
-  static const String mqttHost = 'c8xxxxxxxx.s1.eu.hivemq.cloud'; // Ví dụ URL
-  static const int mqttPort = 8883; // Cổng SSL thường là 8883
-  static const String mqttUser =
-      'your_username'; // User bạn tạo trong HiveMQ Access Management
-  static const String mqttPass = 'your_password';
+  // === 1. MQTT CONFIG (HiveMQ Cloud) ===
+  static const String mqttHost =
+      '6abef4b39f794ca5bf9ae3fd100385e6.s1.eu.hivemq.cloud';
+  static const int mqttPort = 8883; // Cổng SSL/TLS
+  static const String mqttUser = 'taitumtt04';
+  static const String mqttPass = 'Taitum26102004';
 
   // === 2. FIRESTORE COLLECTION NAMES (Khớp với sơ đồ DB) ===
   static const String colUsers = 'users';
   static const String colHomes = 'homes';
+  static const String colHomeMembers = 'home_members';
   static const String colGateways = 'gateways';
   static const String colRooms = 'rooms';
   static const String colNodes = 'nodes';

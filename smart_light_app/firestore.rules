@@ -1,0 +1,130 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Helper function to get user ID
+    function getUserId() {
+      return request.auth.uid;
+    }
+    
+    // ==================== USERS ====================
+    // Users can read and update their own profile
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && getUserId() == userId;
+      allow update: if isSignedIn() && getUserId() == userId;
+      allow delete: if false; // Don't allow user deletion
+    }
+    
+    // ==================== HOMES ====================
+    // Anyone authenticated can create a home
+    // Users can read homes they are members of
+    // Only owners can update/delete homes
+    match /homes/{homeId} {
+      // Allow reading if user is a member of this home
+      allow read: if isSignedIn() && 
+        (exists(/databases/$(database)/documents/home_members/$(getUserId() + '_' + homeId)) ||
+         existsAfter(/databases/$(database)/documents/home_members/$(getUserId() + '_' + homeId)));
+      
+      // Allow creating a home (will be paired with home_members creation)
+      // Schema: homeId, name, description
+      allow create: if isSignedIn() && 
+        request.resource.data.keys().hasAll(['homeId', 'name', 'description']) &&
+        request.resource.data.homeId == homeId;
+      
+      // Helper to check if user is owner via home_members
+      function isOwner() {
+        return exists(/databases/$(database)/documents/home_members/$(getUserId() + '_' + homeId)) &&
+               get(/databases/$(database)/documents/home_members/$(getUserId() + '_' + homeId)).data.role == 'owner';
+      }
+      
+      // Allow update if user is owner
+      allow update: if isSignedIn() && isOwner();
+      
+      // Allow delete if user is owner
+      allow delete: if isSignedIn() && isOwner();
+    }
+    
+    // ==================== HOME MEMBERS ====================
+    // Schema: id (userId_homeId), homeId, userId, role
+    match /home_members/{memberId} {
+      // Allow reading own memberships
+      allow read: if isSignedIn() && resource.data.userId == getUserId();
+      
+      // Allow creating membership when creating a home (user creates their own owner record)
+      // Format: id == userId_homeId
+      allow create: if isSignedIn() && 
+        request.resource.data.userId == getUserId() &&
+        request.resource.data.id == (getUserId() + '_' + request.resource.data.homeId) &&
+        memberId == (getUserId() + '_' + request.resource.data.homeId);
+      
+      // Helper to check if current user is owner of the home
+      function isHomeOwner(homeId) {
+        return exists(/databases/$(database)/documents/home_members/$(getUserId() + '_' + homeId)) &&
+               get(/databases/$(database)/documents/home_members/$(getUserId() + '_' + homeId)).data.role == 'owner';
+      }
+      
+      // Only home owner can update membership
+      allow update: if isSignedIn() && isHomeOwner(resource.data.homeId);
+      
+      // Only home owner can delete membership
+      allow delete: if isSignedIn() && isHomeOwner(resource.data.homeId);
+    }
+    
+    // ==================== ROOMS ====================
+    // Users can manage rooms in their homes
+    match /rooms/{roomId} {
+      function isHomeMember() {
+        return exists(/databases/$(database)/documents/home_members/$(getUserId() + '_' + resource.data.homeId));
+      }
+      
+      function isHomeMemberForCreate() {
+        return exists(/databases/$(database)/documents/home_members/$(getUserId() + '_' + request.resource.data.homeId));
+      }
+      
+      allow read: if isSignedIn() && (isHomeMember() || isHomeMemberForCreate());
+      allow create: if isSignedIn() && isHomeMemberForCreate();
+      allow update, delete: if isSignedIn() && isHomeMember();
+    }
+    
+    // ==================== GATEWAYS ====================
+    // Users can manage gateways in their homes
+    match /gateways/{gatewayMac} {
+      function isHomeMember() {
+        return exists(/databases/$(database)/documents/home_members/$(getUserId() + '_' + resource.data.homeId));
+      }
+      
+      function isHomeMemberForCreate() {
+        return exists(/databases/$(database)/documents/home_members/$(getUserId() + '_' + request.resource.data.homeId));
+      }
+      
+      allow read: if isSignedIn() && (isHomeMember() || isHomeMemberForCreate());
+      allow create: if isSignedIn() && isHomeMemberForCreate();
+      allow update, delete: if isSignedIn() && isHomeMember();
+    }
+    
+    // ==================== NODES ====================
+    // Users can manage nodes through their gateways/rooms
+    match /nodes/{nodeMac} {
+      function isHomeMember() {
+        let gatewayData = get(/databases/$(database)/documents/gateways/$(resource.data.gatewayMac)).data;
+        return exists(/databases/$(database)/documents/home_members/$(getUserId() + '_' + gatewayData.homeId));
+      }
+      
+      function isHomeMemberForCreate() {
+        let gatewayData = get(/databases/$(database)/documents/gateways/$(request.resource.data.gatewayMac)).data;
+        return exists(/databases/$(database)/documents/home_members/$(getUserId() + '_' + gatewayData.homeId));
+      }
+      
+      allow read: if isSignedIn() && (isHomeMember() || isHomeMemberForCreate());
+      allow create: if isSignedIn() && isHomeMemberForCreate();
+      allow update, delete: if isSignedIn() && isHomeMember();
+    }
+  }
+}

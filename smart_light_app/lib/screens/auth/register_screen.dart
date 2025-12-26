@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 import '../../constants.dart';
-import '../home/dashboard_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -88,13 +87,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           );
 
                           if (success && context.mounted) {
-                            Navigator.pushAndRemoveUntil(
+                            // Đăng ký thành công - StreamBuilder sẽ tự chuyển màn hình
+                            Navigator.pop(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => const DashboardScreen(),
-                              ),
-                              (route) => false,
-                            );
+                            ); // Quay lại login, StreamBuilder sẽ xử lý
 
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
