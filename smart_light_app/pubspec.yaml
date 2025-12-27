@@ -42,7 +42,10 @@ dependencies:
   # 3. IoT Communication (MQTT)
   mqtt_client: ^10.0.1
 
-  # 4. Utilities (Tiện ích)
+  # 4. Network Connectivity (Kiểm tra kết nối mạng)
+  connectivity_plus: ^6.0.5
+
+  # 5. Utilities (Tiện ích)
   uuid: ^4.2.1 # Để tạo ID ngẫu nhiên nếu cần
   intl: ^0.18.1 # Để định dạng ngày tháng (timestamp)
   # The following adds the Cupertino Icons font to your application.

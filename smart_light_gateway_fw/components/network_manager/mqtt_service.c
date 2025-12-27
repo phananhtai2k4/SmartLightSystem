@@ -7,6 +7,8 @@
 #include "sys_nvs.h"
 #include "device_control.h" // Để có thể gọi hàm resubscribe_all_topics
 #include "freertos/semphr.h"
+#include "cJSON.h"
+#include "device_identity.h"
 
 static const char *TAG = "MQTT_SERVICE";
 mqtt_config_t mqtt_config;
@@ -45,6 +47,21 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED, broker URL: %s", mqtt_config.broker_url);
             // Đăng ký các topic trước đó đã lưu trong cấu hình
             resubscribe_all_topics();
+            // Tạo JSON response
+            cJSON *response = cJSON_CreateObject();
+            cJSON_AddStringToObject(response, "name", CMD_GET_DEVICE_ID);
+            cJSON_AddStringToObject(response, "devT", CONFIG_DEVICE_TYPE);
+            cJSON_AddStringToObject(response, "devExtAddr", device_get_mac_str());
+            
+            char *response_str = cJSON_PrintUnformatted(response);
+            if (response_str) {
+                ESP_LOGI(TAG, "Sending response: %s", response_str);
+                send_response(response_str, CMD_TYPE_MQTT);
+                vTaskDelay(500 / portTICK_PERIOD_MS);
+                send_response(response_str, CMD_TYPE_MQTT);
+                cJSON_free(response_str);
+            }
+            cJSON_Delete(response);
             break;
         case MQTT_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");

@@ -13,6 +13,8 @@ class MqttService {
   MqttService._internal();
 
   MqttServerClient? _client;
+  String? _currentClientId;
+  bool _isConnecting = false;
 
   // Stream controllers để broadcast trạng thái và messages
   final _connectionStatusController =
@@ -31,9 +33,35 @@ class MqttService {
 
   /// Kết nối tới HiveMQ Cloud broker
   Future<bool> connect(String clientId) async {
+    print('🔌 MQTT: connect() called with clientId: $clientId');
+
+    // Guard: Đang connecting thì skip
+    if (_isConnecting) {
+      print('⚠️ MQTT: Already connecting, skipping...');
+      return false;
+    }
+
+    // Đã connected thì skip
     if (isConnected) {
-      debugPrint('MQTT: Already connected');
+      print('✅ MQTT: Already connected');
       return true;
+    }
+
+    // Nếu đã có client với cùng clientId, chỉ cần reconnect
+    if (_client != null && _currentClientId == clientId) {
+      print('🔄 MQTT: Reusing existing client, waiting for auto-reconnect...');
+      return isConnected;
+    }
+
+    _isConnecting = true;
+    _currentClientId = clientId;
+
+    // Disconnect client cũ nếu có
+    if (_client != null) {
+      print('🔌 MQTT: Disconnecting old client...');
+      _client!.autoReconnect = false;
+      _client!.disconnect();
+      _client = null;
     }
 
     _client = MqttServerClient.withPort(
@@ -71,13 +99,15 @@ class MqttService {
     _client!.connectionMessage = connMessage;
 
     try {
-      debugPrint(
-        'MQTT: Connecting to ${AppConstants.mqttHost}:${AppConstants.mqttPort}...',
+      print(
+        '🔌 MQTT: Connecting to ${AppConstants.mqttHost}:${AppConstants.mqttPort}...',
       );
       await _client!.connect();
 
+      _isConnecting = false;
+
       if (isConnected) {
-        debugPrint('MQTT: Connected successfully!');
+        print('✅ MQTT: Connected successfully!');
 
         // Lắng nghe messages từ tất cả topics đã subscribe
         _client!.updates?.listen((
@@ -91,7 +121,7 @@ class MqttService {
             final payloadString = MqttPublishPayload.bytesToStringAsString(
               payload.payload.message,
             );
-            debugPrint('MQTT: Received on ${message.topic}: $payloadString');
+            print('📩 MQTT: Received on ${message.topic}: $payloadString');
           }
         });
 
@@ -101,13 +131,16 @@ class MqttService {
         return true;
       }
     } on NoConnectionException catch (e) {
-      debugPrint('MQTT: Connection exception - $e');
+      print('❌ MQTT: Connection exception - $e');
+      _isConnecting = false;
       _client?.disconnect();
     } on SocketException catch (e) {
-      debugPrint('MQTT: Socket exception - $e');
+      print('❌ MQTT: Socket exception - $e');
+      _isConnecting = false;
       _client?.disconnect();
     } catch (e) {
-      debugPrint('MQTT: Unknown exception - $e');
+      print('❌ MQTT: Unknown exception - $e');
+      _isConnecting = false;
       _client?.disconnect();
     }
 
@@ -170,31 +203,31 @@ class MqttService {
   // ==================== CALLBACKS ====================
 
   void _onConnected() {
-    debugPrint('MQTT: ✅ Connected');
+    print('✅ MQTT: Connected callback');
     _connectionStatusController.add(MqttConnectionState.connected);
   }
 
   void _onDisconnected() {
-    debugPrint('MQTT: ❌ Disconnected');
+    print('❌ MQTT: Disconnected callback');
     _connectionStatusController.add(MqttConnectionState.disconnected);
   }
 
   void _onAutoReconnect() {
-    debugPrint('MQTT: 🔄 Auto reconnecting...');
+    print('🔄 MQTT: Auto reconnecting...');
     _connectionStatusController.add(MqttConnectionState.connecting);
   }
 
   void _onAutoReconnected() {
-    debugPrint('MQTT: ✅ Auto reconnected');
+    print('✅ MQTT: Auto reconnected');
     _connectionStatusController.add(MqttConnectionState.connected);
   }
 
   void _onSubscribed(String topic) {
-    debugPrint('MQTT: 📥 Subscribed to $topic');
+    print('📥 MQTT: Subscribed to $topic');
   }
 
   void _onUnsubscribed(String? topic) {
-    debugPrint('MQTT: 📤 Unsubscribed from $topic');
+    print('📤 MQTT: Unsubscribed from $topic');
   }
 
   /// Dispose resources

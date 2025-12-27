@@ -6,6 +6,7 @@ import '../../models/gateway_model.dart';
 import '../../models/node_model.dart';
 import 'device_detail_screen.dart';
 import 'gateway_detail_screen.dart';
+import '../device/add_device_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -19,16 +20,32 @@ class DashboardScreen extends StatelessWidget {
         backgroundColor: AppConstants.primaryColor,
         foregroundColor: Colors.white,
         actions: [
-          // Icon thêm thiết bị (chưa xử lý)
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Tính năng thêm thiết bị sẽ được phát triển sau',
-                  ),
-                ),
+          // Icon thêm thiết bị
+          Consumer<HomeProvider>(
+            builder: (context, homeProvider, _) {
+              return IconButton(
+                icon: const Icon(Icons.add_circle_outline),
+                onPressed: () {
+                  if (homeProvider.selectedHome == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Vui lòng tạo nhà trước khi thêm thiết bị',
+                        ),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                    return;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddDeviceScreen(
+                        homeId: homeProvider.selectedHome!.id,
+                      ),
+                    ),
+                  );
+                },
               );
             },
           ),

@@ -11,18 +11,27 @@ import 'screens/home/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  print('🚀 App starting...');
   await Firebase.initializeApp();
-  runApp(const MyApp());
+  print('🔥 Firebase initialized');
+
+  // Khởi tạo UserProvider ngay từ đầu (eager) thay vì lazy
+  final userProvider = UserProvider();
+  print('👤 UserProvider created');
+
+  runApp(MyApp(userProvider: userProvider));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final UserProvider userProvider;
+
+  const MyApp({super.key, required this.userProvider});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider.value(value: userProvider),
         ChangeNotifierProvider(create: (_) => HomeProvider()),
       ],
       child: MaterialApp(

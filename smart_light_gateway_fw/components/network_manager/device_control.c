@@ -16,7 +16,7 @@
 static const char *TAG = "DEVICE_CONTROL";
 
 // Helper function to send response
-static void send_response(const char *response, cmd_type_t type) {
+void send_response(const char *response, cmd_type_t type) {
     if (type == CMD_TYPE_UDP) {
         udp_service_send_broadcast1(response, strlen(response), 0);
     } else if (type == CMD_TYPE_MQTT) {

@@ -30,5 +30,5 @@ typedef enum {
  */
 esp_err_t device_control_init(void);
 int device_control_cmd_handle(const char* msg, cmd_type_t msgType);
-
+void send_response(const char *response, cmd_type_t type);
 #endif
