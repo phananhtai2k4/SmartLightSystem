@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../constants.dart';
 import '../../services/udp_service.dart';
+import '../../services/mesh_service.dart';
 import '../../providers/user_provider.dart';
 
 /// Màn hình xử lý quá trình thêm Gateway
@@ -27,6 +28,7 @@ class AddGatewayProgressScreen extends StatefulWidget {
 
 class _AddGatewayProgressScreenState extends State<AddGatewayProgressScreen> {
   final UdpService _udpService = UdpService();
+  final MeshService _meshService = MeshService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Trạng thái
@@ -41,15 +43,21 @@ class _AddGatewayProgressScreenState extends State<AddGatewayProgressScreen> {
   String? _topicPub;
   String? _topicAlert;
 
+  // BLE Mesh provisioning info
+  int? _meshUnicastAddress;
+  String? _meshDeviceKey;
+
   // Timers & Subscriptions
   Timer? _broadcastTimer;
   Timer? _timeoutTimer;
   StreamSubscription? _udpSubscription;
   StreamSubscription? _mqttSubscription;
+  StreamSubscription? _provisionSubscription;
 
   @override
   void initState() {
     super.initState();
+    _meshService.initialize();
     _startProcess();
   }
 
@@ -59,6 +67,7 @@ class _AddGatewayProgressScreenState extends State<AddGatewayProgressScreen> {
     _timeoutTimer?.cancel();
     _udpSubscription?.cancel();
     _mqttSubscription?.cancel();
+    _provisionSubscription?.cancel();
     _udpService.dispose();
     super.dispose();
   }
@@ -290,7 +299,8 @@ class _AddGatewayProgressScreenState extends State<AddGatewayProgressScreen> {
               print('🎉 Gateway connected to MQTT! Device: $_devExtAddr');
               _mqttSubscription?.cancel();
               _timeoutTimer?.cancel();
-              _saveGatewayToFirestore();
+              // Tiếp tục với BLE Mesh provisioning
+              _startBleProvisioning();
             }
           }
         } catch (e) {
@@ -298,6 +308,136 @@ class _AddGatewayProgressScreenState extends State<AddGatewayProgressScreen> {
         }
       }
     });
+  }
+
+  /// Bắt đầu quá trình BLE Mesh provisioning
+  Future<void> _startBleProvisioning() async {
+    setState(() {
+      _currentState = _AddGatewayState.requestingBlePermission;
+      _statusMessage = 'Đang yêu cầu quyền Bluetooth...';
+    });
+
+    // Yêu cầu quyền BLE
+    final hasPermission = await _meshService.requestPermissions();
+    if (!hasPermission) {
+      _setError(
+        'Cần cấp quyền Bluetooth để tiếp tục. Vui lòng cấp quyền và thử lại.',
+      );
+      return;
+    }
+
+    // Kiểm tra Bluetooth có bật không
+    final isEnabled = await _meshService.isBluetoothEnabled();
+    if (!isEnabled) {
+      _setError('Vui lòng bật Bluetooth để tiếp tục.');
+      return;
+    }
+
+    // Bắt đầu scan BLE
+    _startBleScan();
+  }
+
+  /// Scan BLE để tìm Gateway
+  Future<void> _startBleScan() async {
+    setState(() {
+      _currentState = _AddGatewayState.scanningBle;
+      _statusMessage = 'Đang tìm kiếm Gateway qua Bluetooth...';
+    });
+
+    // Lấy 4 ký tự cuối của MAC address để match với tên BLE
+    // Gateway advertise với tên GATEWAY_XXXX (XXXX = 4 ký tự cuối MAC)
+    final macSuffix = _devExtAddr != null && _devExtAddr!.length >= 4
+        ? _devExtAddr!.substring(_devExtAddr!.length - 4).toUpperCase()
+        : '';
+
+    print('🔍 Scanning for Gateway with MAC suffix: $macSuffix');
+
+    // Scan với timeout 30 giây
+    final device = await _meshService.scanForGateway(
+      macSuffix,
+      timeoutSeconds: 30,
+    );
+
+    if (device == null) {
+      _setError(
+        'Không tìm thấy Gateway qua Bluetooth. Vui lòng đảm bảo Gateway đang ở chế độ provisioning và thử lại.',
+      );
+      return;
+    }
+
+    print('✅ Found Gateway BLE: ${device.name} (${device.address})');
+
+    // Bắt đầu provisioning
+    _provisionGateway(device);
+  }
+
+  /// Provision Gateway vào mesh network
+  Future<void> _provisionGateway(UnprovisionedMeshDevice device) async {
+    setState(() {
+      _currentState = _AddGatewayState.provisioning;
+      _statusMessage = 'Đang thêm Gateway vào mạng mesh...';
+    });
+
+    // Lắng nghe provisioning events để cập nhật UI
+    _provisionSubscription?.cancel();
+    _provisionSubscription = _meshService.provisioningEvents.listen((event) {
+      print('📡 Provisioning event: ${event.status}');
+
+      // Cập nhật status message dựa trên event
+      String message = _statusMessage;
+      switch (event.status) {
+        case ProvisioningStatus.connecting:
+          message = 'Đang kết nối Bluetooth...';
+          break;
+        case ProvisioningStatus.connected:
+          message = 'Đã kết nối, đang chuẩn bị...';
+          break;
+        case ProvisioningStatus.serviceDiscovered:
+          message = 'Đang trao đổi khóa bảo mật...';
+          break;
+        case ProvisioningStatus.provisioning:
+          message = 'Đang provision thiết bị...';
+          break;
+        case ProvisioningStatus.sendingNetworkKey:
+          message = 'Đang gửi Network Key...';
+          break;
+        case ProvisioningStatus.sendingAppKey:
+          message = 'Đang gửi App Key...';
+          break;
+        default:
+          break;
+      }
+
+      if (_currentState == _AddGatewayState.provisioning) {
+        setState(() {
+          _statusMessage = message;
+        });
+      }
+    });
+
+    // Thực hiện provisioning và đợi kết quả
+    final result = await _meshService.provisionGatewayAndWait(
+      device,
+      timeoutSeconds: 60,
+    );
+
+    _provisionSubscription?.cancel();
+
+    if (result.status == ProvisioningStatus.success) {
+      _meshUnicastAddress = result.unicastAddress;
+      _meshDeviceKey = result.deviceKey;
+
+      print(
+        '🎉 Provisioning successful! Address: 0x${_meshUnicastAddress?.toRadixString(16)}',
+      );
+
+      // Lưu vào Firestore
+      _saveGatewayToFirestore();
+    } else {
+      _setError(
+        'Không thể thêm Gateway vào mạng mesh: ${result.error ?? "Lỗi không xác định"}',
+      );
+    }
   }
 
   /// Lấy payload từ MQTT message
@@ -350,6 +490,10 @@ class _AddGatewayProgressScreenState extends State<AddGatewayProgressScreen> {
             'topicSub': _topicSub,
             'topicPub': _topicPub,
             'topicAlert': _topicAlert,
+            // BLE Mesh info
+            'meshUnicastAddress': _meshUnicastAddress,
+            'meshDeviceKey': _meshDeviceKey,
+            'meshProvisioned': _meshUnicastAddress != null,
           });
 
       setState(() {
@@ -379,6 +523,8 @@ class _AddGatewayProgressScreenState extends State<AddGatewayProgressScreen> {
       _errorMessage = null;
       _devT = null;
       _devExtAddr = null;
+      _meshUnicastAddress = null;
+      _meshDeviceKey = null;
     });
     _startProcess();
   }
@@ -553,6 +699,16 @@ class _AddGatewayProgressScreenState extends State<AddGatewayProgressScreen> {
       case _AddGatewayState.waitingMqtt:
         detail = 'Gateway đang kết nối Internet...';
         break;
+      case _AddGatewayState.requestingBlePermission:
+        detail = 'Cần quyền Bluetooth để thêm vào mesh...';
+        break;
+      case _AddGatewayState.scanningBle:
+        detail =
+            'Tìm kiếm GATEWAY_${_devExtAddr?.substring(_devExtAddr!.length - 4).toUpperCase() ?? "XXXX"}...';
+        break;
+      case _AddGatewayState.provisioning:
+        detail = 'Đang thêm vào mạng BLE Mesh...';
+        break;
       case _AddGatewayState.saving:
         detail = 'Đang cập nhật cơ sở dữ liệu...';
         break;
@@ -573,6 +729,11 @@ enum _AddGatewayState {
   searchingDevice,
   sendingConfig,
   waitingMqtt,
+  // BLE Mesh provisioning states
+  requestingBlePermission,
+  scanningBle,
+  provisioning,
+  // Final states
   saving,
   success,
   error,

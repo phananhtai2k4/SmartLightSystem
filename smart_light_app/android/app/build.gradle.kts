@@ -6,6 +6,11 @@ plugins {
     id("com.google.gms.google-services") 
 }
 
+// Add JitPack repository for nRF Mesh SDK
+repositories {
+    maven { url = uri("https://jitpack.io") }
+}
+
 android {
     namespace = "com.example.smart_light_app"
     compileSdk = flutter.compileSdkVersion
@@ -25,7 +30,7 @@ android {
         applicationId = "com.example.smart_light_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 26 // Required for BLE Mesh
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -49,4 +54,15 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx:22.3.0")
     implementation("com.google.firebase:firebase-firestore-ktx:25.0.0")
     implementation("com.google.firebase:firebase-core:21.1.1")
+    
+    // Nordic nRF Mesh SDK
+    implementation("no.nordicsemi.android:mesh:3.2.1")
+    // Nordic BLE Library (required for BleMeshManager)
+    implementation("no.nordicsemi.android:ble:2.7.0")
+    implementation("no.nordicsemi.android:ble-common:2.7.0")
+    // Nordic BLE Scanner
+    implementation("no.nordicsemi.android.support.v18:scanner:1.6.0")
+    // Coroutines for async operations
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
 }
