@@ -5,12 +5,14 @@
 #include "nvs.h"
 #include "esp_log.h"
 #include <string.h> // Cần cho memset
+#include "esp_partition.h"
 // #include "topic_logic.h" // Để lấy cấu hình thiết bị
 
 
 static const char *TAG = "NVS_STORAGE";
+#define FLAGS_PARTITION_LABEL "flags"
 device_config_t g_device_config;
-
+boot_flag_t boot_flag;
 // --- Các định nghĩa cho Wi-Fi ---
 #define WIFI_NAMESPACE "wifi_config"
 #define KEY_WIFI_SSID  "ssid"
@@ -62,6 +64,7 @@ esp_err_t nvs_storage_init(void)
     } else {
         ESP_LOGI(TAG, "NVS initialized successfully.");
     }
+    boot_flag = boot_flags_read();
     return err;
 }
 
@@ -381,4 +384,67 @@ esp_err_t nvs_storage_clear_mqtt_config(void)
 mqtt_erase_cleanup:
     nvs_close(my_handle);
     return err;
+}
+
+static const esp_partition_t* find_flags_partition(void) {
+    const esp_partition_t *partition = esp_partition_find_first(
+        ESP_PARTITION_TYPE_DATA, 
+        ESP_PARTITION_SUBTYPE_DATA_OTA, 
+        FLAGS_PARTITION_LABEL
+    );
+
+    if (partition == NULL) {
+        ESP_LOGE(TAG, "Partition '%s' not found!", FLAGS_PARTITION_LABEL);
+        return NULL;
+    }
+
+    return partition;
+}
+
+
+bool boot_flags_write(boot_flag_t flag) {
+    const esp_partition_t *partition = find_flags_partition();
+    if (partition == NULL) {
+        return false;
+    }
+
+    // Chúng ta cần xóa sector trước khi ghi
+    esp_err_t err = esp_partition_erase_range(partition, 0, partition->size);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to erase flags partition: %s", esp_err_to_name(err));
+        return false;
+    }
+    
+    // Ghi giá trị cờ vào đầu phân vùng
+    uint8_t flag_value = (uint8_t)flag;
+    err = esp_partition_write(partition, 0, &flag_value, sizeof(flag_value));
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to write flag: %s", esp_err_to_name(err));
+        return false;
+    }
+
+    ESP_LOGI(TAG, "Successfully wrote boot flag: %d", flag_value);
+    return true;
+}
+
+boot_flag_t boot_flags_read(void) {
+    const esp_partition_t *partition = find_flags_partition();
+    if (partition == NULL) {
+        return BOOT_FLAG_NORMAL_START; // Mặc định
+    }
+
+    uint8_t flag_value = 0xFF; // Giá trị mặc định khi flash bị xóa
+    esp_err_t err = esp_partition_read(partition, 0, &flag_value, sizeof(flag_value));
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to read flag: %s", esp_err_to_name(err));
+        return BOOT_FLAG_NORMAL_START; // Mặc định
+    }
+    
+    // Nếu giá trị là 0xFF, nghĩa là phân vùng trống, coi như khởi động bình thường
+    if (flag_value == 0xFF) {
+        return BOOT_FLAG_NORMAL_START;
+    }
+
+    ESP_LOGI(TAG, "Read boot flag: %d", flag_value);
+    return (boot_flag_t)flag_value;
 }

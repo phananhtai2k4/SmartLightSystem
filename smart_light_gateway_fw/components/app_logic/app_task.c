@@ -26,6 +26,14 @@ static void app_main_task(void *arg) {
             switch (event.type) {
                 case EVENT_SYSTEM_STARTUP:
                     ESP_LOGI(TAG, "Sự kiện: Hệ thống khởi động.");
+                    if (boot_flag == BOOT_FLAG_ADDING_GATEWAY_MANUAL) {
+                        char ssid[32];
+                        char pass[64];
+                        esp_err_t nvs_storage_read_wifi_creds(char *ssid, size_t ssid_len, char *pass, size_t pass_len);
+                        nvs_storage_read_wifi_creds(ssid, sizeof(ssid), pass, sizeof(pass)); // Chỉ để in ra log
+                        ESP_LOGI(TAG, "Đang kết nối Wi-Fi với SSID: %s", ssid);
+                        wifi_manager_connect_start(ssid, pass);
+                    }
                     break;
                 
                 case EVENT_NETWORK_CONNECTED:
@@ -38,14 +46,19 @@ static void app_main_task(void *arg) {
 
                 case EVENT_MESH_PROV_COMPLETE:
                     ESP_LOGI(TAG, "Sự kiện: Provisioning hoàn tất.");
-                    // vTaskDelay(pdMS_TO_TICKS(9000));
-                    // wifi_manager_connect_start("Cam-hub","0913456789");
-                    char ssid[32];
-                    char pass[64];
-                    esp_err_t nvs_storage_read_wifi_creds(char *ssid, size_t ssid_len, char *pass, size_t pass_len);
-                    nvs_storage_read_wifi_creds(ssid, sizeof(ssid), pass, sizeof(pass)); // Chỉ để in ra log
-                    ESP_LOGI(TAG, "Đang kết nối Wi-Fi với SSID: %s", ssid);
-                    wifi_manager_connect_start(ssid, pass);
+                    if (!(boot_flag == BOOT_FLAG_ADDING_GATEWAY_MANUAL)) {
+                        // vTaskDelay(pdMS_TO_TICKS(9000));
+                        // wifi_manager_connect_start("Cam-hub","0913456789");
+                        char ssid[32];
+                        char pass[64];
+                        esp_err_t nvs_storage_read_wifi_creds(char *ssid, size_t ssid_len, char *pass, size_t pass_len);
+                        nvs_storage_read_wifi_creds(ssid, sizeof(ssid), pass, sizeof(pass)); // Chỉ để in ra log
+                        ESP_LOGI(TAG, "Đang kết nối Wi-Fi với SSID: %s", ssid);
+                        wifi_manager_connect_start(ssid, pass);
+                    }
+                    if (!boot_flags_write(BOOT_FLAG_ADDED_GATEWAY)) {
+                        ESP_LOGE(TAG, "FATAL: Could not write boot flag! Aborting reset.");
+                    }
                     
                     break;
                     

@@ -12,6 +12,8 @@
 #include "esp_ble_mesh_generic_model_api.h"
 #include "esp_bt_device.h"
 #include "bluetooth_init.h"
+#include "device_identity.h"
+#include "esp_ble_mesh_local_data_operation_api.h"
 #define TAG "BLE_MESH_CORE"
 
 static uint8_t tid = 0;
@@ -30,6 +32,30 @@ static esp_ble_mesh_prov_t provision_info = {
 #endif
 };
 
+/**
+ * @brief Tự động bind lại các model khi khởi động nếu cần.
+ */
+static void auto_rebind_on_startup(void)
+{
+    // 1. Kiểm tra xem thiết bị đã được provision chưa
+    if (!esp_ble_mesh_node_is_provisioned()) {
+        ESP_LOGI(TAG, "Thiết bị chưa được provision, bỏ qua tự bind.");
+        return;
+    }
+    ESP_LOGI(TAG, "Thiết bị đã được provision, tiến hành tự bind lại các model.");
+    // 3. Thực hiện bind lại
+    // Lấy địa chỉ unicast của chính node này
+    uint16_t self_addr = esp_ble_mesh_get_primary_element_address();
+    uint16_t app_idx = 0; // Giả định AppKey đầu tiên luôn là index 0
+
+    // Bind lại OnOff Client
+    esp_ble_mesh_node_bind_app_key_to_local_model(self_addr, 0xFFFF,
+                                                ESP_BLE_MESH_MODEL_ID_GEN_ONOFF_CLI, app_idx);
+    // Bind lại OnOff Server
+    esp_ble_mesh_node_bind_app_key_to_local_model(self_addr, 0xFFFF,
+                                            ESP_BLE_MESH_MODEL_ID_GEN_ONOFF_SRV, app_idx);
+}
+
 esp_err_t ble_mesh_core_init(void)
 {
     ESP_LOGI(TAG, "Đang khởi tạo BLE Mesh Core...");
@@ -44,6 +70,10 @@ esp_err_t ble_mesh_core_init(void)
         ESP_LOGE(TAG, "Không thể khởi tạo mesh stack (err %d)", err);
         return err;
     }
+    auto_rebind_on_startup();
+    const char *new_device_name = device_get_short_id();
+    ESP_LOGI(TAG, "Setting unprovisioned device name to: %s", new_device_name);
+    err = esp_ble_mesh_set_unprovisioned_device_name(new_device_name);
     // 4. Bật BLE Mesh Node để sẵn sàng cho provisioning
     err = esp_ble_mesh_node_prov_enable(ESP_BLE_MESH_PROV_ADV | ESP_BLE_MESH_PROV_GATT);
     if (err != ESP_OK) {
@@ -149,6 +179,24 @@ esp_err_t ble_mesh_core_node_prov_enable(void)
         ESP_LOGE(TAG, "Không thể bật chế độ provisioning (err %d)", err);
     } else {
         ESP_LOGI(TAG, "BLE Mesh Node đã sẵn sàng để provisioning.");
+    }
+    return err;
+}
+
+esp_err_t ble_mesh_core_node_prov_enable_adding_gw(void)
+{
+    esp_err_t err;
+
+    err = bluetooth_init();
+    if (err) {
+        ESP_LOGE(TAG, "esp32_bluetooth_init failed (err %d)", err);
+        return err;
+    }
+    ESP_LOGI(TAG, "Bluetooth đã được khởi tạo.");
+    err = ble_mesh_core_init();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Khởi tạo BLE Mesh Core thất bại!");
+        return err;
     }
     return err;
 }

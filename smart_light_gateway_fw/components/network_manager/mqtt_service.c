@@ -9,6 +9,7 @@
 #include "freertos/semphr.h"
 #include "cJSON.h"
 #include "device_identity.h"
+#include "ble_mesh_core.h"
 
 static const char *TAG = "MQTT_SERVICE";
 mqtt_config_t mqtt_config;
@@ -59,6 +60,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                 send_response(response_str, CMD_TYPE_MQTT);
                 vTaskDelay(500 / portTICK_PERIOD_MS);
                 send_response(response_str, CMD_TYPE_MQTT);
+                if (boot_flag == BOOT_FLAG_ADDING_GATEWAY_MANUAL) {
+                    ble_mesh_core_node_prov_enable_adding_gw();
+                    ESP_LOGI(TAG, "Enabled BLE Mesh provisioning mode.");
+                }
                 cJSON_free(response_str);
             }
             cJSON_Delete(response);

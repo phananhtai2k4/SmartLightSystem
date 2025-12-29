@@ -21,6 +21,7 @@
 #include "mqtt_service.h"
 #include "bluetooth_init.h"
 #include "udp_service.h"
+#include "ble_mesh_core.h"
 
 // --- Lấy từ cả hai ví dụ ---
 static const char *TAG = "WIFI_MANAGER";
@@ -39,6 +40,7 @@ static int s_retry_num = 0;
 esp_err_t wifi_manager_switch_to_ap(void)
 {
     ESP_LOGI(TAG, "Switching to AP mode...");
+    ble_mesh_core_node_local_reset();
     mqtt_service_stop_and_deinit();
     bluetooth_deinit();
     wifi_config_t wifi_config;

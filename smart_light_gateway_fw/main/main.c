@@ -31,7 +31,10 @@ void app_main(void)
         ESP_LOGE(TAG, "KHỞI TẠO LOGIC ỨNG DỤNG THẤT BẠI! Mã lỗi: 0x%x", app_init_result);
         return;
     }
-
+    if (boot_flag == BOOT_FLAG_ADDING_GATEWAY_MANUAL) {
+        ESP_LOGI(TAG, "Đang ở chế độ thêm gateway thủ công qua app. Bỏ qua khởi tạo Bluetooth và BLE Mesh.");
+        return;
+    }
     esp_err_t err;
 
     err = bluetooth_init();

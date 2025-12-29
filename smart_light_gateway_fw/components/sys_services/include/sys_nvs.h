@@ -4,6 +4,25 @@
 
 #include "esp_err.h"
 #include <stddef.h> // Để có kiểu size_t
+#include <stdint.h>
+#include <stdbool.h>
+
+
+
+typedef enum {
+    //cờ gateway đang trong quá trình thêm gateway thủ công qua app
+    BOOT_FLAG_ADDING_GATEWAY_MANUAL,
+    //cờ gateway đã thành công được thêm qua app
+    BOOT_FLAG_ADDED_GATEWAY,
+    BOOT_FLAG_FACTORY_RESET,
+    BOOT_FLAG_NORMAL_START,
+    BOOT_FLAG_ENTER_BLUFI_PROVISIONING,
+    BOOT_FLAG_ENTER_MESH_PROVISIONING,
+    BOOT_FLAG_MESH,
+    BOOT_FLAG_BLUFI,
+} boot_flag_t;
+
+extern boot_flag_t boot_flag;
 
 /**
  * @brief Cấu trúc lưu trữ thông tin cấu hình MQTT.
@@ -195,3 +214,20 @@ esp_err_t sys_nvs_erase_key(const char *key);
  * @return esp_err_t ESP_OK nếu thành công.
  */
 esp_err_t sys_nvs_erase_all(void);
+
+/**
+ * @brief Ghi một cờ vào phân vùng 'flags'.
+ * 
+ * @param flag Cờ cần ghi.
+ * @return true nếu ghi thành công.
+ * @return false nếu thất bại.
+ */
+bool boot_flags_write(boot_flag_t flag);
+
+/**
+ * @brief Đọc cờ từ phân vùng 'flags'.
+ * 
+ * @return boot_flag_t Cờ đã được đọc. Sẽ trả về BOOT_FLAG_NORMAL_START nếu đọc thất bại hoặc
+ *                     phân vùng còn trống (toàn byte 0xFF).
+ */
+boot_flag_t boot_flags_read(void);
