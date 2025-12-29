@@ -1,0 +1,15 @@
+menu "Device Identity Configuration"
+
+config DEVICE_TYPE
+    string "Device type"
+    default 3017
+    help
+      Loại công tắc.
+
+config SOFTWARE_VERSION
+    string "Software Version"
+    default "2.2.0"
+    help
+      Phiên bản phần mềm firmware.
+
+endmenu

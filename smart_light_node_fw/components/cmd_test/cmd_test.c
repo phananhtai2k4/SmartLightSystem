@@ -25,18 +25,18 @@ esp_err_t cmd_test_start(void)
     cmd_test_register_cmds();  // Đăng ký các lệnh test
 
     // // Thiết lập phần cứng giao tiếp (sử dụng UART mặc định)
-    esp_console_dev_usb_serial_jtag_config_t hw_config = ESP_CONSOLE_DEV_USB_SERIAL_JTAG_CONFIG_DEFAULT();
-    esp_err_t err = esp_console_new_repl_usb_serial_jtag(&hw_config, &repl_config, &repl);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Không thể khởi tạo REPL qua UART: %s", esp_err_to_name(err));
-        return err;
-    }
-    // esp_console_dev_uart_config_t hw_config = ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT();
-    // esp_err_t err = esp_console_new_repl_uart(&hw_config, &repl_config, &repl);
+    // esp_console_dev_usb_serial_jtag_config_t hw_config = ESP_CONSOLE_DEV_USB_SERIAL_JTAG_CONFIG_DEFAULT();
+    // esp_err_t err = esp_console_new_repl_usb_serial_jtag(&hw_config, &repl_config, &repl);
     // if (err != ESP_OK) {
     //     ESP_LOGE(TAG, "Không thể khởi tạo REPL qua UART: %s", esp_err_to_name(err));
     //     return err;
     // }
+    esp_console_dev_uart_config_t hw_config = ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT();
+    esp_err_t err = esp_console_new_repl_uart(&hw_config, &repl_config, &repl);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Không thể khởi tạo REPL qua UART: %s", esp_err_to_name(err));
+        return err;
+    }
     // Bắt đầu vòng lặp REPL. Hàm này sẽ không quay trở lại.
     err = esp_console_start_repl(repl);
     if (err != ESP_OK) {

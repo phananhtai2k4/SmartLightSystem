@@ -173,3 +173,28 @@ esp_err_t ble_mesh_core_publish_onoff_status(void)
 
     return err;
 }
+
+// esp_err_t esp_ble_mesh_node_local_reset(void)
+esp_err_t ble_mesh_core_node_local_reset(void)
+{
+    ESP_LOGI(TAG, "Đang thực hiện local reset cho BLE Mesh Node...");
+    esp_err_t err = esp_ble_mesh_node_local_reset();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Local reset thất bại (err %d)", err);
+    } else {
+        ESP_LOGI(TAG, "Local reset thành công. Node sẽ cần được provision lại.");
+    }
+    return err;
+}
+
+esp_err_t ble_mesh_core_node_prov_enable(void)
+{
+    ESP_LOGI(TAG, "Đang bật chế độ provisioning cho BLE Mesh Node...");
+    esp_err_t err = esp_ble_mesh_node_prov_enable(ESP_BLE_MESH_PROV_ADV | ESP_BLE_MESH_PROV_GATT);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Không thể bật chế độ provisioning (err %d)", err);
+    } else {
+        ESP_LOGI(TAG, "BLE Mesh Node đã sẵn sàng để provisioning.");
+    }
+    return err;
+}

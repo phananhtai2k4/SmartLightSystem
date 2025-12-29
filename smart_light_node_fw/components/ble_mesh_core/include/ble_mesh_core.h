@@ -69,5 +69,6 @@ esp_err_t ble_mesh_core_send_onoff_set_unack(uint16_t dest_addr, uint8_t onoff);
  * @return esp_err_t ESP_OK nếu publish thành công.
  */
 esp_err_t ble_mesh_core_publish_onoff_status(void);
-
+esp_err_t ble_mesh_core_node_local_reset(void);
+esp_err_t ble_mesh_core_node_prov_enable(void);
 #endif // __BLE_MESH_CORE_H__
