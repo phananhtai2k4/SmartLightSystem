@@ -116,10 +116,6 @@ static int handle_set_device_config(cJSON *value, cmd_type_t type) {
         cJSON_free(response_str);
     }
     cJSON_Delete(response);
-    if (!boot_flags_write(BOOT_FLAG_ADDING_GATEWAY_MANUAL)) {
-        ESP_LOGE(TAG, "FATAL: Could not write boot flag! Aborting reset.");
-        return ESP_FAIL; 
-    }
     //resetchip
     ESP_LOGI(TAG, "Device config updated, restarting device...");
     vTaskDelay(500 / portTICK_PERIOD_MS);

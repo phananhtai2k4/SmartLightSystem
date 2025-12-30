@@ -10,16 +10,9 @@
 
 
 typedef enum {
-    //cờ gateway đang trong quá trình thêm gateway thủ công qua app
     BOOT_FLAG_ADDING_GATEWAY_MANUAL,
-    //cờ gateway đã thành công được thêm qua app
     BOOT_FLAG_ADDED_GATEWAY,
-    BOOT_FLAG_FACTORY_RESET,
     BOOT_FLAG_NORMAL_START,
-    BOOT_FLAG_ENTER_BLUFI_PROVISIONING,
-    BOOT_FLAG_ENTER_MESH_PROVISIONING,
-    BOOT_FLAG_MESH,
-    BOOT_FLAG_BLUFI,
 } boot_flag_t;
 
 extern boot_flag_t boot_flag;

@@ -74,6 +74,10 @@ esp_err_t ble_mesh_core_init(void)
     const char *new_device_name = device_get_short_id();
     ESP_LOGI(TAG, "Setting unprovisioned device name to: %s", new_device_name);
     err = esp_ble_mesh_set_unprovisioned_device_name(new_device_name);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Lỗi đặt tên thiết bị chưa provision (err %d)", err);
+        return err;
+    }
     // 4. Bật BLE Mesh Node để sẵn sàng cho provisioning
     err = esp_ble_mesh_node_prov_enable(ESP_BLE_MESH_PROV_ADV | ESP_BLE_MESH_PROV_GATT);
     if (err != ESP_OK) {

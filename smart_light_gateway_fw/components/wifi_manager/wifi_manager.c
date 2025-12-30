@@ -40,6 +40,10 @@ static int s_retry_num = 0;
 esp_err_t wifi_manager_switch_to_ap(void)
 {
     ESP_LOGI(TAG, "Switching to AP mode...");
+    if (!boot_flags_write(BOOT_FLAG_ADDING_GATEWAY_MANUAL)) {
+        ESP_LOGE(TAG, "FATAL: Could not write boot flag! Aborting reset.");
+        return ESP_FAIL; 
+    }
     ble_mesh_core_node_local_reset();
     mqtt_service_stop_and_deinit();
     bluetooth_deinit();

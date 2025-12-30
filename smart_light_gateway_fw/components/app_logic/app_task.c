@@ -8,6 +8,7 @@
 #include "wifi_manager.h"
 #include "sys_nvs.h"
 #include "task_config.h"
+#include "board_led.h"
 
 static const char *TAG = "APP_TASK";
 
@@ -64,6 +65,31 @@ static void app_main_task(void *arg) {
                     
                 case EVENT_MESH_GENERIC_ONOFF_SET_RECEIVED:
                     handle_onoff_set_event(&event.data.onoff_set);
+                    break;
+
+                // Button events
+                case EVENT_BUTTON_PRESSED:
+                    ESP_LOGI(TAG, "Sự kiện: Button được bấm");
+                    if (boot_flag == BOOT_FLAG_ADDING_GATEWAY_MANUAL) {
+                        boot_flags_write(BOOT_FLAG_NORMAL_START);
+                        vTaskDelay(200 / portTICK_PERIOD_MS);
+                        esp_restart();
+                    }
+                    break;
+
+                // case EVENT_BUTTON_RELEASED:
+                //     ESP_LOGI(TAG, "Sự kiện: Button được thả");
+                //     // Xử lý khi button được thả (nếu cần)
+                //     break;
+
+                case EVENT_BUTTON_HOLD_3S:
+                    ESP_LOGI(TAG, "Sự kiện: Button giữ 3 giây");
+                    wifi_manager_switch_to_ap();
+                    break;
+
+                case EVENT_BUTTON_HOLD_5S:
+                    ESP_LOGI(TAG, "Sự kiện: Button giữ 5 giây");
+                    led_service_set_boot_flag(BOOT_FLAG_NORMAL_START);
                     break;
 
                 default:

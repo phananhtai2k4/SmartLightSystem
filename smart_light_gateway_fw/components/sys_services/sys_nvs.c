@@ -422,7 +422,7 @@ bool boot_flags_write(boot_flag_t flag) {
         ESP_LOGE(TAG, "Failed to write flag: %s", esp_err_to_name(err));
         return false;
     }
-
+    boot_flag = flag;
     ESP_LOGI(TAG, "Successfully wrote boot flag: %d", flag_value);
     return true;
 }

@@ -17,6 +17,10 @@ typedef enum {
     EVENT_MESH_PROV_COMPLETE,           // Provisioning hoàn tất
     EVENT_MESH_CONFIG_RECEIVED,         // Nhận được thông tin cấu hình (ví dụ: AppKey bind)
     EVENT_MESH_GENERIC_ONOFF_SET_RECEIVED,
+    EVENT_BUTTON_PRESSED,
+    EVENT_BUTTON_RELEASED,
+    EVENT_BUTTON_HOLD_3S,
+    EVENT_BUTTON_HOLD_5S,
 } app_event_type_t;
 
 // Dữ liệu cho sự kiện nhận lệnh OnOff
