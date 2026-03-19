@@ -58,7 +58,7 @@ esp_ble_mesh_gen_onoff_srv_t onoff_server = {
 // --- Các biến cho Generic OnOff Client Model ---
 // Model này cho phép Node gửi lệnh Bật/Tắt đến các Server khác.
 ESP_BLE_MESH_MODEL_PUB_DEFINE(onoff_pub_cli, 2 + 1, ROLE_NODE); // Context cho việc publish của client
-static esp_ble_mesh_client_t onoff_client; // Handle cho client model
+esp_ble_mesh_client_t onoff_client; // Handle cho client model
 
 
 /*

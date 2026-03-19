@@ -71,4 +71,5 @@ esp_err_t ble_mesh_core_send_onoff_set_unack(uint16_t dest_addr, uint8_t onoff);
 esp_err_t ble_mesh_core_publish_onoff_status(void);
 esp_err_t ble_mesh_core_node_local_reset(void);
 esp_err_t ble_mesh_core_node_prov_enable(void);
+void auto_rebind_on_startup(void);
 #endif // __BLE_MESH_CORE_H__

@@ -14,6 +14,7 @@
 #include "app_logic.h"
 #include "ble_mesh_core.h"
 #include "bluetooth_init.h"
+#include "cmd_test.h"
 
 #define TAG "MAIN"
 
@@ -36,7 +37,7 @@ void app_main(void)
         ESP_LOGE(TAG, "Khởi tạo hàng đợi sự kiện thất bại!");
         return;
     }
-
+    cmd_test_start();
     // 3. Khởi tạo lớp trừu tượng phần cứng (LED, nút bấm, relay...)
     // Hàm này phải được gọi sau hàng đợi sự kiện vì button init cần nó
     err = board_hal_init();
@@ -65,9 +66,6 @@ void app_main(void)
         ESP_LOGE(TAG, "Khởi tạo BLE Mesh Core thất bại!");
         return;
     }
-    
-    // Bắt đầu quá trình provisioning...
-    board_led_set_state(STATUS_LED, LED_STATE_BLINK_SLOW);
 
     ESP_LOGI(TAG, "Khởi tạo hoàn tất. Thiết bị đang hoạt động.");
 }

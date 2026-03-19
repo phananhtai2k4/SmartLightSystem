@@ -8,7 +8,8 @@
 #include "sys_nvs.h" // Nhúng file header công khai
 
 #define TAG "SYS_NVS"
-
+#define FLAGS_PARTITION_LABEL "flags"
+boot_flag_t boot_flag;
 // --- Định nghĩa các hằng số cho NVS ---
 
 // Namespace là một "thư mục" logic để tránh xung đột tên khóa với các component khác.
@@ -46,6 +47,7 @@ esp_err_t sys_nvs_init(void)
         ESP_LOGE(TAG, "Không thể mở NVS namespace: %s", esp_err_to_name(err));
         return err;
     }
+    boot_flag = boot_flags_read();
 
     return ESP_OK;
 }
@@ -128,4 +130,67 @@ esp_err_t sys_nvs_erase_all(void)
         return err;
     }
     return nvs_commit(nvs_app_handle);
+}
+
+static const esp_partition_t* find_flags_partition(void) {
+    const esp_partition_t *partition = esp_partition_find_first(
+        ESP_PARTITION_TYPE_DATA, 
+        ESP_PARTITION_SUBTYPE_DATA_OTA, 
+        FLAGS_PARTITION_LABEL
+    );
+
+    if (partition == NULL) {
+        ESP_LOGE(TAG, "Partition '%s' not found!", FLAGS_PARTITION_LABEL);
+        return NULL;
+    }
+
+    return partition;
+}
+
+
+bool boot_flags_write(boot_flag_t flag) {
+    const esp_partition_t *partition = find_flags_partition();
+    if (partition == NULL) {
+        return false;
+    }
+
+    // Chúng ta cần xóa sector trước khi ghi
+    esp_err_t err = esp_partition_erase_range(partition, 0, partition->size);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to erase flags partition: %s", esp_err_to_name(err));
+        return false;
+    }
+    
+    // Ghi giá trị cờ vào đầu phân vùng
+    uint8_t flag_value = (uint8_t)flag;
+    err = esp_partition_write(partition, 0, &flag_value, sizeof(flag_value));
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to write flag: %s", esp_err_to_name(err));
+        return false;
+    }
+    boot_flag = flag;
+    ESP_LOGI(TAG, "Successfully wrote boot flag: %d", flag_value);
+    return true;
+}
+
+boot_flag_t boot_flags_read(void) {
+    const esp_partition_t *partition = find_flags_partition();
+    if (partition == NULL) {
+        return BOOT_FLAG_NORMAL_START; // Mặc định
+    }
+
+    uint8_t flag_value = 0xFF; // Giá trị mặc định khi flash bị xóa
+    esp_err_t err = esp_partition_read(partition, 0, &flag_value, sizeof(flag_value));
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to read flag: %s", esp_err_to_name(err));
+        return BOOT_FLAG_NORMAL_START; // Mặc định
+    }
+    
+    // Nếu giá trị là 0xFF, nghĩa là phân vùng trống, coi như khởi động bình thường
+    if (flag_value == 0xFF) {
+        return BOOT_FLAG_NORMAL_START;
+    }
+
+    ESP_LOGI(TAG, "Read boot flag: %d", flag_value);
+    return (boot_flag_t)flag_value;
 }

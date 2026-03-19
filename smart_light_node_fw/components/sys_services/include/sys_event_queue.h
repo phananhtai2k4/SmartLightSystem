@@ -19,7 +19,8 @@ typedef enum {
     // --- Sự kiện từ nguồn Phần cứng (Board HAL) ---
     EVENT_BUTTON_PRESSED,
     EVENT_BUTTON_RELEASED,
-    EVENT_BUTTON_LONG_PRESS,
+    EVENT_BUTTON_HOLD_3S,
+    EVENT_BUTTON_HOLD_5S,
 
     // --- Sự kiện từ nguồn BLE Mesh Core ---
     EVENT_MESH_PROV_COMPLETE,           // Provisioning hoàn tất

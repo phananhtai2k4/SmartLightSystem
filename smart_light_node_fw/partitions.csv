@@ -5,6 +5,7 @@
 #factory,    app,  factory, 0x10000,  0x500000
 #ota_1,      app,  ota_0,   0x510000, 0x500000
 #storage,    data, spiffs,  0xa10000, 0x3E0000
+#flags,      data, ota,     0xDF0000,  0x2000
 
 #n4
 # Name,     Type, SubType, Offset,  Size

@@ -13,6 +13,14 @@
 #include <stdbool.h>
 #include "esp_err.h"
 
+typedef enum {
+    BOOT_FLAG_ADDING_DEVICE_MANUAL,
+    BOOT_FLAG_ADDED_DEVICE,
+    BOOT_FLAG_NORMAL_START,
+} boot_flag_t;
+
+extern boot_flag_t boot_flag;
+
 /*
  * =====================================================================================
  * CÁC CẤU TRÚC DỮ LIỆU CẦN LƯU TRỮ
@@ -110,5 +118,23 @@ esp_err_t sys_nvs_erase_key(const char *key);
  * @return esp_err_t ESP_OK nếu thành công.
  */
 esp_err_t sys_nvs_erase_all(void);
+
+
+/**
+ * @brief Ghi một cờ vào phân vùng 'flags'.
+ * 
+ * @param flag Cờ cần ghi.
+ * @return true nếu ghi thành công.
+ * @return false nếu thất bại.
+ */
+bool boot_flags_write(boot_flag_t flag);
+
+/**
+ * @brief Đọc cờ từ phân vùng 'flags'.
+ * 
+ * @return boot_flag_t Cờ đã được đọc. Sẽ trả về BOOT_FLAG_NORMAL_START nếu đọc thất bại hoặc
+ *                     phân vùng còn trống (toàn byte 0xFF).
+ */
+boot_flag_t boot_flags_read(void);
 
 #endif // __SYS_NVS_H__

@@ -13,6 +13,11 @@
 #include "esp_log.h"
 #include "esp_err.h"
 
+#define BUTTON_GPIO     22
+
+// Định nghĩa các chân GPIO cho mỗi đèn LED chức năng
+#define STATUS_LED_GPIO         GPIO_NUM_2
+#define RELAY_STATE_LED_GPIO    GPIO_NUM_4
 
 /*
  * @brief Định danh cho các đèn LED cụ thể trên bo mạch.
@@ -60,7 +65,7 @@ esp_err_t board_hal_init(void);
  */
 esp_err_t board_led_set_state(board_led_id_t led_id, board_led_state_t state);
 
-
+void boot_flag_change_process();
 // Chú ý: Các khai báo hàm liên quan đến nút bấm cũng sẽ được đặt ở đây.
 // Ví dụ:
 // typedef void (*board_button_callback_t)(uint8_t button_id, board_button_event_t event);

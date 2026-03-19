@@ -7,6 +7,7 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "board_hal.h" // Nhúng file header công khai của chúng ta
+#include "sys_nvs.h"
 
 #define TAG "BOARD_HAL_LED"
 
@@ -17,13 +18,9 @@
  * Đây là phần DUY NHẤT bạn cần chỉnh sửa khi thay đổi bo mạch mới.
  */
 
-// Định nghĩa các chân GPIO cho mỗi đèn LED chức năng
-#define STATUS_LED_GPIO         GPIO_NUM_2  // Ví dụ: LED màu xanh dương trên ESP32-DevKitC
-#define RELAY_STATE_LED_GPIO    GPIO_NUM_4  // Ví dụ: Một LED màu xanh lá cây riêng biệt
-
 // Định nghĩa chu kỳ nhấp nháy (tính bằng mili-giây)
-#define BLINK_FAST_PERIOD_MS    250
-#define BLINK_SLOW_PERIOD_MS    1000
+#define BLINK_FAST_PERIOD_MS    100
+#define BLINK_SLOW_PERIOD_MS    500
 
 /*
  * =====================================================================================
@@ -116,6 +113,7 @@ static void initialize_single_led(led_control_t *led)
  * =====================================================================================
  */
 
+boot_flag_t boot_flag_fake;
 // Hàm này được định nghĩa trong board_hal.h, nhưng chúng ta có thể có một hàm
 // trợ giúp cục bộ cho việc khởi tạo riêng phần LED.
 esp_err_t board_led_init(void)
@@ -124,7 +122,31 @@ esp_err_t board_led_init(void)
     for (int i = 0; i < BOARD_LED_ID_MAX; i++) {
         initialize_single_led(&led_config[i]);
     }
+    boot_flag_fake = 99;
     return ESP_OK;
+}
+
+void boot_flag_change_process()
+{
+    if (boot_flag != boot_flag_fake) {
+        boot_flag_fake = boot_flag;
+        switch (boot_flag) {
+            case BOOT_FLAG_ADDING_DEVICE_MANUAL:
+                ESP_LOGI(TAG, "BOOT FLAG: Thêm thiết bị thủ công");
+                board_led_set_state(STATUS_LED, LED_STATE_BLINK_FAST);
+                break;
+            case BOOT_FLAG_ADDED_DEVICE:
+                ESP_LOGI(TAG, "BOOT FLAG: Đã thêm thiết bị");
+                board_led_set_state(STATUS_LED, LED_STATE_ON);
+                break;
+            case BOOT_FLAG_NORMAL_START:
+                ESP_LOGI(TAG, "BOOT FLAG: Khởi động bình thường");
+                board_led_set_state(STATUS_LED, LED_STATE_BLINK_SLOW);
+                break;
+            default:
+                break;
+        }
+    }
 }
 
 // Hàm công khai để thiết lập trạng thái LED

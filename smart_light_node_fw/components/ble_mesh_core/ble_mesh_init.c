@@ -14,6 +14,8 @@
 #include "esp_ble_mesh_generic_model_api.h"
 #include "esp_bt_device.h"
 #include "bluetooth_init.h"
+#include "esp_ble_mesh_local_data_operation_api.h"
+#include "device_identity.h"
 #define TAG "BLE_MESH_CORE"
 
 // Biến static để theo dõi Transaction ID (TID) cho các tin nhắn gửi đi
@@ -54,6 +56,30 @@ static esp_ble_mesh_prov_t provision_info = {
 //     provision_info.output_actions = 0;
 // }
 
+/**
+ * @brief Tự động bind lại các model khi khởi động nếu cần.
+ */
+void auto_rebind_on_startup(void)
+{
+    // 1. Kiểm tra xem thiết bị đã được provision chưa
+    if (!esp_ble_mesh_node_is_provisioned()) {
+        ESP_LOGI(TAG, "Thiết bị chưa được provision, bỏ qua tự bind.");
+        return;
+    }
+    ESP_LOGI(TAG, "Thiết bị đã được provision, tiến hành tự bind lại các model.");
+    // 3. Thực hiện bind lại
+    // Lấy địa chỉ unicast của chính node này
+    uint16_t self_addr = esp_ble_mesh_get_primary_element_address();
+    uint16_t app_idx = 0; // Giả định AppKey đầu tiên luôn là index 0
+
+    // Bind lại OnOff Client
+    esp_ble_mesh_node_bind_app_key_to_local_model(self_addr, 0xFFFF,
+                                                ESP_BLE_MESH_MODEL_ID_GEN_ONOFF_CLI, app_idx);
+    // Bind lại OnOff Server
+    esp_ble_mesh_node_bind_app_key_to_local_model(self_addr, 0xFFFF,
+                                            ESP_BLE_MESH_MODEL_ID_GEN_ONOFF_SRV, app_idx);
+}
+
 esp_err_t ble_mesh_core_init(void)
 {
     ESP_LOGI(TAG, "Đang khởi tạo BLE Mesh Core...");
@@ -76,11 +102,14 @@ esp_err_t ble_mesh_core_init(void)
         ESP_LOGE(TAG, "Không thể khởi tạo mesh stack (err %d)", err);
         return err;
     }
-
-    // --- Logic tự động khôi phục mạng (nếu có) ---
-    // Phần này có thể được thêm vào để node tự tham gia lại mạng sau khi khởi động
-    // bằng cách đọc thông tin từ NVS. Tạm thời bỏ qua để đơn giản hóa.
-
+    auto_rebind_on_startup();
+    const char *new_device_name = device_get_short_id();
+    ESP_LOGI(TAG, "Setting unprovisioned device name to: %s", new_device_name);
+    err = esp_ble_mesh_set_unprovisioned_device_name(new_device_name);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Lỗi đặt tên thiết bị chưa provision (err %d)", err);
+        return err;
+    }
     // 4. Bật chế độ cho phép provisioning qua PB-ADV và PB-GATT
     err = esp_ble_mesh_node_prov_enable(ESP_BLE_MESH_PROV_ADV | ESP_BLE_MESH_PROV_GATT);
     if (err != ESP_OK) {

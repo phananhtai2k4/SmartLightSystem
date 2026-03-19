@@ -32,7 +32,7 @@ static void handle_onoff_set_event(const event_data_onoff_set_t *onoff_data)
     // 2. Điều khiển phần cứng vật lý (relay và đèn LED trạng thái)
     // Giả sử có hàm board_relay_set_state() trong board_hal
     // board_relay_set_state(onoff_data->onoff_state); 
-    board_led_set_state(STATUS_LED, onoff_data->onoff_state ? LED_STATE_ON : LED_STATE_OFF);
+    board_led_set_state(RELAY_STATE_LED, onoff_data->onoff_state ? LED_STATE_ON : LED_STATE_OFF);
     
     // 3. Lưu trạng thái mới vào NVS để khôi phục sau khi khởi động lại
     relay_state_t state_to_save = { .onoff = onoff_data->onoff_state };
@@ -93,7 +93,8 @@ void app_event_handler(const app_event_t *event)
 
     case EVENT_MESH_PROV_COMPLETE:
         ESP_LOGI(TAG, "Sự kiện: Provisioning hoàn tất.");
-        board_led_set_state(STATUS_LED, LED_STATE_ON); // Bật đèn xanh báo đã kết nối
+        boot_flags_write(BOOT_FLAG_ADDED_DEVICE);
+        auto_rebind_on_startup();
         break;
         
     case EVENT_MESH_GENERIC_ONOFF_SET_RECEIVED:
@@ -101,14 +102,24 @@ void app_event_handler(const app_event_t *event)
         break;
         
     case EVENT_BUTTON_PRESSED:
-        handle_button_press_event();
+        if (boot_flag == BOOT_FLAG_ADDING_DEVICE_MANUAL) {
+                boot_flags_write(BOOT_FLAG_NORMAL_START);
+                vTaskDelay(200 / portTICK_PERIOD_MS);
+                esp_restart();
+            }
         break;
 
     // Thêm các case khác ở đây, ví dụ:
-    case EVENT_BUTTON_LONG_PRESS:
-        ESP_LOGI(TAG, "Sự kiện: Nhấn giữ lâu. Thực hiện reset factory...");
-        // sys_nvs_erase_all();
-        // esp_restart();
+    case EVENT_BUTTON_HOLD_3S:
+        ESP_LOGI(TAG, "Sự kiện: Nhấn giữ nút 3 giây");
+        boot_flags_write(BOOT_FLAG_ADDING_DEVICE_MANUAL);
+        ble_mesh_core_node_local_reset();
+        ble_mesh_core_node_prov_enable();
+        break;
+        
+    case EVENT_BUTTON_HOLD_5S:
+        ESP_LOGI(TAG, "Sự kiện: Nhấn giữ nút 5 giây");
+        // Thực hiện chức năng khác nếu cần
         break;
         
     default:
