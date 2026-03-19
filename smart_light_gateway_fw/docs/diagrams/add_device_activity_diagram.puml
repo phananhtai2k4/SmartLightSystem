@@ -1,0 +1,88 @@
+@startuml "Biểu đồ Hoạt động: Thêm Thiết bị (Đèn) mới"
+!theme vibrant
+title "Luồng công việc: Thêm Thiết bị Chiếu sáng mới"
+
+|App - UI|
+start
+:Người dùng chọn "Thêm Thiết bị";
+:Hiển thị hướng dẫn
+giữ button trên thiết bị 3 giây;
+
+|Device - Button/LED|
+:Người dùng giữ button 3 giây;
+:Bật LED nhấp nháy
+(chế độ chờ provision);
+
+|Device - BLE Mesh Core|
+:Vào chế độ Unprovisioned;
+:Phát bản tin ADV
+(Unprovisioned Device Beacon);
+
+|App - UI|
+:Hiển thị "Đang tìm thiết bị...";
+
+|App - BLE Provisioner|
+:Scan BLE tìm thiết bị
+chưa provision;
+
+if (Tìm thấy thiết bị?) then ([yes])
+
+  |App - UI|
+  :Hiển thị danh sách
+  thiết bị scan được;
+  :Người dùng chọn một
+  thiết bị để provision;
+
+  |App - BLE Provisioner|
+  :Bắt đầu BLE Mesh Provisioning;
+  :Gửi Provisioning Invite;
+
+  |Device - BLE Mesh Core|
+  :Nhận Provisioning Invite;
+  :Trao đổi Capabilities;
+  :Thực hiện Key Exchange;
+
+  |App - BLE Provisioner|
+  :Cung cấp OOB (Static OOB);
+  :Gửi Provisioning Data
+  (NetKey, AppKey, Address);
+
+  |Device - BLE Mesh Core|
+  :Nhận Provisioning Data;
+  :Gia nhập Mesh Network;
+
+  |Device - NVS Storage|
+  :Lưu Network credentials;
+
+  |App - BLE Provisioner|
+  :Provisioning thành công;
+  :Thực hiện cấu hình Mesh
+  (Thêm AppKey, Bind Model);
+
+  |Device - BLE Mesh Core|
+  :Nhận cấu hình AppKey Bind;
+  :Sẵn sàng nhận lệnh điều khiển;
+
+  |Device - Button/LED|
+  :Chuyển LED sáng liên tục
+  (đã provision thành công);
+
+  |App - Firestore|
+  :Ghi thông tin thiết bị mới
+  (mesh address, device type)
+  vào Firestore;
+
+  |App - UI|
+  :Hiển thị "Thêm thiết bị thành công";
+  stop
+
+else ([no])
+
+  |App - UI|
+  :Hiển thị "Không tìm thấy
+  thiết bị nào";
+  stop
+
+endif
+
+@enduml

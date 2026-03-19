@@ -18,5 +18,6 @@
     "esp_ble_mesh_networking_api.h": "c"
   },
   "idf.portWin": "COM13",
-  "idf.flashType": "UART"
+  "idf.flashType": "UART",
+  "idf.currentSetup": "C:\\Users\\admin\\esp\\v5.4.1\\esp-idf"
 }

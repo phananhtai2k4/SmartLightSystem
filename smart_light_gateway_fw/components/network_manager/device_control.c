@@ -12,6 +12,7 @@
 #include "sys_nvs.h"
 #include "udp_service.h"
 #include "wifi_manager.h"
+#include "ble_mesh_core.h"
 
 static const char *TAG = "DEVICE_CONTROL";
 
@@ -154,6 +155,58 @@ static int handle_reset(cJSON *value, cmd_type_t type) {
     return 0;
 }
 
+static int handle_set_data(cJSON *value, cmd_type_t type) {
+    ESP_LOGI(TAG, "Handle set data");
+    if (!value || !cJSON_IsObject(value)) {
+        ESP_LOGW(TAG, "Invalid value object for set data");
+        return -1;
+    }
+    cJSON *address = cJSON_GetObjectItem(value, "address");
+    cJSON *state = cJSON_GetObjectItem(value, "state");
+    if (!cJSON_IsNumber(address) || !cJSON_IsNumber(state)) {
+        ESP_LOGW(TAG, "Missing or invalid 'address' or 'state' in set data");
+        return -1;
+    }
+    uint16_t dest_addr = (uint16_t)address->valueint;
+    uint8_t onoff = (uint8_t)state->valueint;
+    ESP_LOGI(TAG, "Set data: address=%u, state=%u", dest_addr, onoff);
+    ble_mesh_core_send_onoff_set(dest_addr, onoff);
+    return 0;
+}
+
+void get_data_response(uint16_t address, uint8_t state, int devT, cmd_type_t type) {
+    ESP_LOGI(TAG, "Sending get data response: address=%u, state=%u, devT=%d", address, state, devT);
+    cJSON *response = cJSON_CreateObject();
+    cJSON_AddStringToObject(response, "name", CMD_GET_DATA);
+    cJSON_AddNumberToObject(response, "devT", devT);
+    cJSON_AddNumberToObject(response, "address", address);
+    cJSON_AddNumberToObject(response, "state", state);
+    char *response_str = cJSON_PrintUnformatted(response);
+    if (response_str) {
+        ESP_LOGI(TAG, "Sending response: %s", response_str);
+        send_response(response_str, type);
+        cJSON_free(response_str);
+    }
+    cJSON_Delete(response);
+}
+
+static int handle_get_data(cJSON *value, cmd_type_t type) {
+    ESP_LOGI(TAG, "Handle get data");
+    if (!value || !cJSON_IsObject(value)) {
+        ESP_LOGW(TAG, "Invalid value object for get data");
+        return -1;
+    }
+    cJSON *address = cJSON_GetObjectItem(value, "address");
+    if (!cJSON_IsNumber(address)) {
+        ESP_LOGW(TAG, "Missing or invalid 'address' in get data");
+        return -1;
+    }
+    uint16_t dest_addr = (uint16_t)address->valueint;
+    ESP_LOGI(TAG, "Get data: address=%u", dest_addr);
+    ble_mesh_core_send_onoff_get(dest_addr);
+    return 0;
+}
+
 int device_control_cmd_handle(const char* msg, cmd_type_t msgType) {
     ESP_LOGI(TAG, "MSG: %s", msg);
     int ret = -1;
@@ -188,6 +241,10 @@ int device_control_cmd_handle(const char* msg, cmd_type_t msgType) {
         ret = handle_get_status(pJsValue, msgType);
     else if (strcmp(pJsName->valuestring, CMD_RESET) == 0)
         ret = handle_reset(pJsValue, msgType);
+    else if (strcmp(pJsName->valuestring, CMD_SET_DATA) == 0)
+        ret = handle_set_data(pJsValue, msgType);
+    else if (strcmp(pJsName->valuestring, CMD_GET_DATA) == 0)
+        ret = handle_get_data(pJsValue, msgType);
     else {
         ESP_LOGW(TAG, "Command '%s' not supported", pJsName->valuestring);
     }

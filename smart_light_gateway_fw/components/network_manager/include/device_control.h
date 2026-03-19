@@ -17,6 +17,7 @@ typedef enum {
 #define CMD_GET_DEVICE_ID        "CmdGetDeviceID"
 #define CMD_GET_DEVICE_STATUS    "CmdGetStatus"
 #define CMD_GET_DATA             "CmdGetData"
+#define CMD_SET_DATA             "CmdSetData"
 #define CMD_RESET                "CmdReset"
 #define CMD_SET_CHANGE_MODE      "CmdSetChangeMode"
 #define CMD_GET_WIFI_INFO        "CmdGetWifiInfo"
@@ -31,4 +32,5 @@ typedef enum {
 esp_err_t device_control_init(void);
 int device_control_cmd_handle(const char* msg, cmd_type_t msgType);
 void send_response(const char *response, cmd_type_t type);
+void get_data_response(uint16_t address, uint8_t state, int devT, cmd_type_t type);
 #endif

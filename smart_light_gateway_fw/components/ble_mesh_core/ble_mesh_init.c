@@ -35,7 +35,7 @@ static esp_ble_mesh_prov_t provision_info = {
 /**
  * @brief Tự động bind lại các model khi khởi động nếu cần.
  */
-static void auto_rebind_on_startup(void)
+void auto_rebind_on_startup(void)
 {
     // 1. Kiểm tra xem thiết bị đã được provision chưa
     if (!esp_ble_mesh_node_is_provisioned()) {
@@ -116,6 +116,19 @@ esp_err_t ble_mesh_core_send_onoff_set_unack(uint16_t dest_addr, uint8_t onoff)
     esp_err_t err = esp_ble_mesh_generic_client_set_state(&common, &set);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Không thể gửi lệnh OnOff Set Unack (err %d)", err);
+    }
+    return err;
+}
+
+esp_err_t ble_mesh_core_send_onoff_get(uint16_t dest_addr)
+{
+    ESP_LOGI(TAG, "Gửi lệnh OnOff Get đến địa chỉ 0x%04X", dest_addr);
+    esp_ble_mesh_client_common_param_t common = {0};
+
+    setup_common_client_params(&common, dest_addr, ESP_BLE_MESH_MODEL_OP_GEN_ONOFF_GET);
+    esp_err_t err = esp_ble_mesh_generic_client_get_state(&common, NULL);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Không thể gửi lệnh OnOff Get (err %d)", err);
     }
     return err;
 }

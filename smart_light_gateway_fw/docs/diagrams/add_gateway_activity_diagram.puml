@@ -1,0 +1,124 @@
+@startuml "Biểu đồ Hoạt động: Thêm Gateway mới (Phân tách Module)"
+!theme vibrant
+title "Luồng công việc: Thêm Gateway mới (WiFi + MQTT + BLE Mesh)"
+
+|App - UI|
+start
+:Người dùng chọn "Thêm Gateway";
+:Hiển thị hướng dẫn
+kết nối vào Wi-Fi SoftAP của Gateway;
+
+|GW - Button/LED|
+:Giữ button trên GW 3 giây;
+
+|GW - NVS Storage|
+:Ghi boot_flag = ADDING_GATEWAY_MANUAL;
+
+|GW - WiFi Manager|
+:Khởi động ở chế độ SoftAP;
+:Chờ kết nối;
+
+|App - UI|
+:Người dùng kết nối điện thoại vào SoftAP;
+
+|App - Network|
+:Kết nối thành công;
+
+|App - UI|
+:Người dùng nhập thông tin Wi-Fi của nhà;
+
+|App - Network|
+:Gửi thông tin cho Gateway qua UDP;
+
+|GW - WiFi Manager|
+:Nhận thông tin Wi-Fi, MQTT,
+ID của user và home;
+
+|GW - NVS Storage|
+:Lưu vào bộ nhớ NVS;
+
+|GW - WiFi Manager|
+:Thử kết nối vào Wi-Fi;
+
+if (Wi-Fi kết nối thành công?) then ([yes])
+
+  |GW - MQTT Service|
+  :Kết nối MQTT Broker;
+  
+  if (MQTT kết nối thành công?) then ([yes])
+
+    |GW - BLE Mesh Core|
+    :Chuyển sang chế độ
+    Unprovisioned BLE Mesh;
+    :Phát BLE ADV;
+
+    |App - BLE Provisioner|
+    :Scan BLE tìm Gateway
+    chưa provision;
+    
+    if (Tìm thấy Gateway?) then ([yes])
+      
+      :Bắt đầu BLE Mesh Provisioning;
+      
+      |GW - BLE Mesh Core|
+      :Nhận Provisioning Invite;
+      :Trao đổi Capabilities;
+      :Thực hiện Key Exchange;
+      
+      |App - BLE Provisioner|
+      :Cung cấp OOB (Static OOB);
+      
+      |GW - BLE Mesh Core|
+      :Nhận Provisioning Data
+      (NetKey, AppKey, Address);
+      :Gia nhập Mesh Network;
+      
+      |GW - NVS Storage|
+      :Ghi boot_flag = ADDED_GATEWAY;
+      
+      |App - BLE Provisioner|
+      :Provisioning thành công;
+      
+      |App - Firestore|
+      :Ghi thông tin Gateway
+      (mesh address, network id)
+      vào Firestore;
+      
+      |App - UI|
+      :Hiển thị "Thêm GW thành công";
+      stop
+
+    else ([no])
+    
+      |App - UI|
+      :Không tìm thấy Gateway BLE;
+      :Hiển thị lỗi Provisioning;
+      stop
+      
+    endif
+
+  else ([no])
+
+    |GW - MQTT Service|
+    :Phản hồi 'MQTT Thất bại';
+
+    |App - UI|
+    :Hiển thị "Lỗi kết nối MQTT!";
+    stop
+
+  endif
+
+else ([no])
+
+  |GW - WiFi Manager|
+  :Phản hồi 'WiFi Thất bại';
+
+  |App - UI|
+  :Hiển thị "Thêm GW thất bại!";
+  stop
+
+endif
+
+@enduml
+
+Khi dữ liệu ánh sáng đến thì cho biến data_send bằng true và cho moniton bằng true và sau khi timout thì cho data_send bằng false và moniton bằng false

@@ -172,6 +172,10 @@ void ble_mesh_generic_client_cb(esp_ble_mesh_generic_client_cb_event_t event,
             ESP_LOGI(TAG, "OnOff Get status from 0x%04x: state is %s",
                 param->params->ctx.addr,
                 param->status_cb.onoff_status.present_onoff ? "ON" : "OFF");
+            app_event_t app_event = { .type = EVENT_MESH_GENERIC_ONOFF_GET_ACK_RECEIVED };
+            app_event.data.onoff_set.ctx = param->params->ctx;
+            app_event.data.onoff_set.onoff_state = param->status_cb.onoff_status.present_onoff;
+            sys_event_queue_send(&app_event);
         }
         break;
     case ESP_BLE_MESH_GENERIC_CLIENT_SET_STATE_EVT:
@@ -179,6 +183,10 @@ void ble_mesh_generic_client_cb(esp_ble_mesh_generic_client_cb_event_t event,
             ESP_LOGI(TAG, "OnOff Set status from 0x%04x: state is %s",
                 param->params->ctx.addr,
                 param->status_cb.onoff_status.present_onoff ? "ON" : "OFF");
+                app_event_t app_event = { .type = EVENT_MESH_GENERIC_ONOFF_SET_ACK_RECEIVED };
+                app_event.data.onoff_set.ctx = param->params->ctx;
+                app_event.data.onoff_set.onoff_state = param->status_cb.onoff_status.present_onoff;
+                sys_event_queue_send(&app_event);
         }
         break;
     case ESP_BLE_MESH_GENERIC_CLIENT_PUBLISH_EVT:

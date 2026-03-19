@@ -59,6 +59,7 @@ esp_err_t ble_mesh_core_init(void);
  * @return esp_err_t ESP_OK nếu lệnh gửi được đưa vào hàng đợi thành công.
  */
 esp_err_t ble_mesh_core_send_onoff_set(uint16_t dest_addr, uint8_t onoff);
+esp_err_t ble_mesh_core_send_onoff_get(uint16_t dest_addr);
 
 /**
  * @brief Gửi một tin nhắn Generic OnOff Set Unacknowledged (không cần xác nhận).
@@ -72,7 +73,6 @@ esp_err_t ble_mesh_core_send_onoff_set(uint16_t dest_addr, uint8_t onoff);
  * @return esp_err_t ESP_OK nếu lệnh gửi được đưa vào hàng đợi thành công.
  */
 esp_err_t ble_mesh_core_send_onoff_set_unack(uint16_t dest_addr, uint8_t onoff);
-
 
 /**
  * @brief Publish một tin nhắn OnOff Status.
@@ -88,4 +88,5 @@ esp_err_t ble_mesh_core_node_local_reset(void);
 
 esp_err_t ble_mesh_core_node_prov_enable(void);
 esp_err_t ble_mesh_core_node_prov_enable_adding_gw(void);
+void auto_rebind_on_startup(void);
 #endif // __BLE_MESH_CORE_H__

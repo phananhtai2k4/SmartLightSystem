@@ -9,6 +9,7 @@
 #include "sys_nvs.h"
 #include "task_config.h"
 #include "board_led.h"
+#include "device_control.h"
 
 static const char *TAG = "APP_TASK";
 
@@ -60,11 +61,17 @@ static void app_main_task(void *arg) {
                     if (!boot_flags_write(BOOT_FLAG_ADDED_GATEWAY)) {
                         ESP_LOGE(TAG, "FATAL: Could not write boot flag! Aborting reset.");
                     }
-                    
+                    vTaskDelay(pdMS_TO_TICKS(2000));
+                    auto_rebind_on_startup();
                     break;
                     
                 case EVENT_MESH_GENERIC_ONOFF_SET_RECEIVED:
                     handle_onoff_set_event(&event.data.onoff_set);
+                    break;
+                    
+                case EVENT_MESH_GENERIC_ONOFF_SET_ACK_RECEIVED:
+                case EVENT_MESH_GENERIC_ONOFF_GET_ACK_RECEIVED:
+                    get_data_response(event.data.onoff_set.ctx.addr, event.data.onoff_set.onoff_state, 3017, CMD_TYPE_MQTT);
                     break;
 
                 // Button events
@@ -76,11 +83,6 @@ static void app_main_task(void *arg) {
                         esp_restart();
                     }
                     break;
-
-                // case EVENT_BUTTON_RELEASED:
-                //     ESP_LOGI(TAG, "Sự kiện: Button được thả");
-                //     // Xử lý khi button được thả (nếu cần)
-                //     break;
 
                 case EVENT_BUTTON_HOLD_3S:
                     ESP_LOGI(TAG, "Sự kiện: Button giữ 3 giây");

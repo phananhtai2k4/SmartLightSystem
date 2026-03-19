@@ -81,11 +81,6 @@ static void button_state_change(uint8_t cur_state, uint16_t repeat)
     // Phát hiện BUTTON RELEASED (từ 1 -> 0)
     if (cur_state == 0 && button_state_prev != 0) {
         ESP_LOGI(TAG, "Button RELEASED (held for %d x 10ms)", repeat);
-        
-        // Gửi event released
-        app_event_t evt = { .type = EVENT_BUTTON_RELEASED };
-        sys_event_queue_send(&evt);
-        
         // Reset flags
         event_pressed_sent = false;
         event_3s_sent = false;

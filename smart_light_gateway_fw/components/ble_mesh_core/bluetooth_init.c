@@ -75,6 +75,8 @@ esp_err_t bluetooth_init(void)
         return ret;
     }
     vTaskDelay(pdMS_TO_TICKS(200));
+    esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_P20);   // tăng công suất quảng bá
+
     return ret;
 }
 esp_err_t bluetooth_deinit(void)
