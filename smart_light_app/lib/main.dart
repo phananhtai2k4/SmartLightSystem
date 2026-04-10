@@ -19,20 +19,30 @@ void main() async {
   final userProvider = UserProvider();
   print('👤 UserProvider created');
 
-  runApp(MyApp(userProvider: userProvider));
+  // Khởi tạo HomeProvider và inject MqttService
+  final homeProvider = HomeProvider();
+  homeProvider.setMqttService(userProvider.mqttService);
+  print('🏠 HomeProvider created with MqttService');
+
+  runApp(MyApp(userProvider: userProvider, homeProvider: homeProvider));
 }
 
 class MyApp extends StatelessWidget {
   final UserProvider userProvider;
+  final HomeProvider homeProvider;
 
-  const MyApp({super.key, required this.userProvider});
+  const MyApp({
+    super.key,
+    required this.userProvider,
+    required this.homeProvider,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: userProvider),
-        ChangeNotifierProvider(create: (_) => HomeProvider()),
+        ChangeNotifierProvider.value(value: homeProvider),
       ],
       child: MaterialApp(
         title: 'Smart Light',

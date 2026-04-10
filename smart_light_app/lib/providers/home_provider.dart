@@ -1,12 +1,20 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mqtt_client/mqtt_client.dart';
+import '../constants.dart';
 import '../models/home_model.dart';
 import '../models/room_model.dart';
 import '../models/gateway_model.dart';
 import '../models/node_model.dart';
 import '../services/home_service.dart';
+import '../services/mqtt_service.dart';
 
 class HomeProvider extends ChangeNotifier {
   final HomeService _homeService = HomeService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  MqttService? _mqttService;
 
   // State
   List<HomeModel> _homes = [];
@@ -17,6 +25,15 @@ class HomeProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Realtime subscriptions
+  StreamSubscription? _roomsSubscription;
+  StreamSubscription? _gatewaysSubscription;
+  StreamSubscription? _nodesSubscription;
+  StreamSubscription? _mqttMessageSubscription;
+
+  // Subscribed topics để tránh subscribe lại
+  final Set<String> _subscribedTopics = {};
+
   // Getters
   List<HomeModel> get homes => _homes;
   HomeModel? get selectedHome => _selectedHome;
@@ -25,6 +42,115 @@ class HomeProvider extends ChangeNotifier {
   List<NodeModel> get nodes => _nodes;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+
+  /// Inject MqttService và bắt đầu lắng nghe messages
+  void setMqttService(MqttService mqttService) {
+    _mqttService = mqttService;
+    _setupMqttMessageListener();
+  }
+
+  /// Setup listener cho MQTT messages từ gateway
+  void _setupMqttMessageListener() {
+    _mqttMessageSubscription?.cancel();
+    _mqttMessageSubscription = _mqttService?.messageStream.listen((message) {
+      _handleMqttMessage(message);
+    });
+  }
+
+  /// Xử lý message MQTT nhận được từ gateway (Luồng 2)
+  void _handleMqttMessage(MqttReceivedMessage<MqttMessage> message) {
+    try {
+      final payload = message.payload as MqttPublishMessage;
+      final payloadString = MqttPublishPayload.bytesToStringAsString(
+        payload.payload.message,
+      );
+
+      debugPrint('📩 HomeProvider: MQTT message on ${message.topic}');
+
+      final json = jsonDecode(payloadString) as Map<String, dynamic>;
+      final name = json['name'] as String?;
+
+      // Xử lý CmdGetData từ gateway - cập nhật trạng thái đèn
+      if (name == 'CmdGetData') {
+        final address = json['address'] as int?;
+        final state = json['state'] as int?;
+
+        if (address != null && state != null) {
+          debugPrint(
+            '💡 Received state update: address=$address, state=$state',
+          );
+          _updateNodeStateFromMqtt(address, state == 1);
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error parsing MQTT message: $e');
+    }
+  }
+
+  /// Cập nhật trạng thái node từ MQTT message và sync lên Firestore
+  Future<void> _updateNodeStateFromMqtt(int meshAddress, bool stateOn) async {
+    // Tìm node có meshAddress tương ứng
+    final nodeIndex = _nodes.indexWhere((n) => n.meshAddress == meshAddress);
+
+    if (nodeIndex != -1) {
+      final node = _nodes[nodeIndex];
+
+      // Chỉ cập nhật nếu state thay đổi
+      if (node.stateOn != stateOn) {
+        debugPrint(
+          '🔄 Updating node ${node.name} (${node.id}): stateOn=$stateOn',
+        );
+
+        // Cập nhật local state
+        _nodes[nodeIndex] = node.copyWith(stateOn: stateOn);
+        notifyListeners();
+
+        // Cập nhật lên Firestore
+        try {
+          await _firestore
+              .collection(AppConstants.colNodes)
+              .doc(node.id)
+              .update({'state_on': stateOn});
+          debugPrint('✅ Firestore updated for node ${node.id}');
+        } catch (e) {
+          debugPrint('❌ Failed to update Firestore: $e');
+        }
+      }
+    } else {
+      debugPrint('⚠️ Node with meshAddress $meshAddress not found');
+    }
+  }
+
+  /// Subscribe topicPub của tất cả gateways
+  void _subscribeGatewayTopics() {
+    if (_mqttService == null || !_mqttService!.isConnected) {
+      debugPrint('⚠️ MQTT not connected, cannot subscribe gateway topics');
+      return;
+    }
+
+    for (final gateway in _gateways) {
+      final topicPub = gateway.topicPub;
+      if (topicPub.isNotEmpty && !_subscribedTopics.contains(topicPub)) {
+        debugPrint('📡 Subscribing to gateway topic: $topicPub');
+        _mqttService!.subscribe(topicPub);
+        _subscribedTopics.add(topicPub);
+      }
+    }
+  }
+
+  /// Dispose subscriptions
+  @override
+  void dispose() {
+    _cancelSubscriptions();
+    _mqttMessageSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _cancelSubscriptions() {
+    _roomsSubscription?.cancel();
+    _gatewaysSubscription?.cancel();
+    _nodesSubscription?.cancel();
+  }
 
   // ==================== HOMES ====================
 
@@ -57,24 +183,61 @@ class HomeProvider extends ChangeNotifier {
     await loadHomeData();
   }
 
-  /// Load dữ liệu của home đang chọn (rooms, gateways, nodes)
+  /// Load dữ liệu của home đang chọn (rooms, gateways, nodes) với realtime listeners
   Future<void> loadHomeData() async {
     if (_selectedHome == null) return;
 
     _isLoading = true;
     notifyListeners();
 
-    try {
-      _rooms = await _homeService.getRooms(_selectedHome!.id);
-      _gateways = await _homeService.getGateways(_selectedHome!.id);
+    // Hủy subscriptions cũ
+    _cancelSubscriptions();
 
-      // Load tất cả nodes của home
-      List<NodeModel> allNodes = [];
-      for (var gateway in _gateways) {
-        final nodes = await _homeService.getNodesByGateway(gateway.id);
-        allNodes.addAll(nodes);
-      }
-      _nodes = allNodes;
+    try {
+      final homeId = _selectedHome!.id;
+
+      // Realtime listener cho rooms
+      _roomsSubscription = _firestore
+          .collection(AppConstants.colRooms)
+          .where('homeId', isEqualTo: homeId)
+          .snapshots()
+          .listen((snapshot) {
+            _rooms = snapshot.docs
+                .map((doc) => RoomModel.fromMap(doc.data(), doc.id))
+                .toList();
+            debugPrint('🔄 Rooms updated: ${_rooms.length} rooms');
+            notifyListeners();
+          });
+
+      // Realtime listener cho gateways
+      _gatewaysSubscription = _firestore
+          .collection(AppConstants.colGateways)
+          .where('homeId', isEqualTo: homeId)
+          .snapshots()
+          .listen((snapshot) {
+            _gateways = snapshot.docs
+                .map((doc) => GatewayModel.fromMap(doc.data(), doc.id))
+                .toList();
+            debugPrint('🔄 Gateways updated: ${_gateways.length} gateways');
+
+            // Subscribe topicPub của các gateways mới
+            _subscribeGatewayTopics();
+
+            notifyListeners();
+          });
+
+      // Realtime listener cho nodes (theo homeId thay vì gatewayMac)
+      _nodesSubscription = _firestore
+          .collection(AppConstants.colNodes)
+          .where('homeId', isEqualTo: homeId)
+          .snapshots()
+          .listen((snapshot) {
+            _nodes = snapshot.docs
+                .map((doc) => NodeModel.fromMap(doc.data(), doc.id))
+                .toList();
+            debugPrint('🔄 Nodes updated: ${_nodes.length} nodes');
+            notifyListeners();
+          });
     } catch (e) {
       _errorMessage = e.toString();
     }
@@ -111,6 +274,7 @@ class HomeProvider extends ChangeNotifier {
 
       // Nếu xóa home đang chọn, chọn home khác
       if (_selectedHome?.id == homeId) {
+        _cancelSubscriptions(); // Hủy listeners cũ
         _selectedHome = _homes.isNotEmpty ? _homes.first : null;
         if (_selectedHome != null) {
           await loadHomeData();
@@ -188,24 +352,6 @@ class HomeProvider extends ChangeNotifier {
     }
   }
 
-  /// Bật/tắt tất cả đèn trong room
-  Future<void> toggleAllNodesInRoom(String roomId, bool stateOn) async {
-    try {
-      await _homeService.toggleAllNodesInRoom(roomId, stateOn);
-
-      // Cập nhật state local
-      for (int i = 0; i < _nodes.length; i++) {
-        if (_nodes[i].roomId == roomId) {
-          _nodes[i] = _nodes[i].copyWith(stateOn: stateOn);
-        }
-      }
-      notifyListeners();
-    } catch (e) {
-      _errorMessage = e.toString();
-      notifyListeners();
-    }
-  }
-
   // ==================== GATEWAYS ====================
 
   /// Xóa gateway
@@ -230,20 +376,44 @@ class HomeProvider extends ChangeNotifier {
     return _nodes.where((n) => n.roomId == roomId).toList();
   }
 
-  /// Toggle trạng thái node
-  Future<void> toggleNode(String nodeMac, bool stateOn) async {
-    try {
-      await _homeService.toggleNode(nodeMac, stateOn);
+  /// Toggle trạng thái node - Luồng 1: Chỉ gửi MQTT request, không cập nhật UI
+  /// UI sẽ được cập nhật khi nhận được CmdGetData từ gateway (Luồng 2)
+  void toggleNode(String nodeMac, bool requestedState) {
+    // Tìm node
+    final node = _nodes.firstWhere(
+      (n) => n.id == nodeMac,
+      orElse: () => throw Exception('Node not found'),
+    );
 
-      // Cập nhật state local
-      final index = _nodes.indexWhere((n) => n.id == nodeMac);
-      if (index != -1) {
-        _nodes[index] = _nodes[index].copyWith(stateOn: stateOn);
-        notifyListeners();
-      }
-    } catch (e) {
-      _errorMessage = e.toString();
+    // Tìm gateway của node
+    final gateway = _gateways.firstWhere(
+      (g) => g.id == node.gatewayMac,
+      orElse: () => throw Exception('Gateway not found'),
+    );
+
+    if (_mqttService == null || !_mqttService!.isConnected) {
+      debugPrint('⚠️ MQTT not connected, cannot send command');
+      _errorMessage = 'Không có kết nối MQTT';
       notifyListeners();
+      return;
+    }
+
+    // Tạo message CmdSetData
+    final message = {
+      'name': 'CmdSetData',
+      'value': {'address': node.meshAddress, 'state': requestedState ? 1 : 0},
+    };
+
+    // Gửi đến topicSub của gateway
+    debugPrint('📤 Sending CmdSetData to ${gateway.topicSub}: $message');
+    _mqttService!.publishJson(gateway.topicSub, message);
+  }
+
+  /// Toggle tất cả nodes trong room - gửi MQTT cho từng node
+  void toggleAllNodesInRoom(String roomId, bool requestedState) {
+    final roomNodes = getNodesInRoom(roomId);
+    for (final node in roomNodes) {
+      toggleNode(node.id, requestedState);
     }
   }
 

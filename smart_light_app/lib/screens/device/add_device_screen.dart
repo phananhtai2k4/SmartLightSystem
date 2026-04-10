@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../constants.dart';
 import 'add_gateway_wifi_screen.dart';
+import 'add_light_instruction_screen.dart';
 
 /// Màn hình chọn loại thiết bị cần thêm
 class AddDeviceScreen extends StatelessWidget {
@@ -49,17 +50,16 @@ class AddDeviceScreen extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // Light Card (Coming soon)
+            // Light Card
             _DeviceTypeCard(
               icon: Icons.lightbulb,
               title: 'Đèn thông minh',
               description: 'Đèn LED có thể điều khiển qua mạng mesh',
-              isComingSoon: true,
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Tính năng đang phát triển...'),
-                    backgroundColor: Colors.orange,
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AddLightInstructionScreen(homeId: homeId),
                   ),
                 );
               },
