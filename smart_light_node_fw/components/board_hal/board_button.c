@@ -54,6 +54,7 @@ static void button_state_change(uint8_t cur_state, uint16_t repeat)
             event_pressed_sent = true;
             event_3s_sent = false;
             event_5s_sent = false;
+            board_led_change_relay_state();
             
             // Gửi event pressed
             app_event_t evt = { .type = EVENT_BUTTON_PRESSED };

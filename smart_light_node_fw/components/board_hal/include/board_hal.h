@@ -51,6 +51,7 @@ typedef enum {
  * @return esp_err_t ESP_OK nếu thành công, hoặc mã lỗi nếu thất bại.
  */
 esp_err_t board_hal_init(void);
+esp_err_t board_adc_init(void);
 
 /**
  * @brief Thiết lập trạng thái của một đèn LED chức năng cụ thể.
@@ -70,6 +71,7 @@ void boot_flag_change_process();
 // Ví dụ:
 // typedef void (*board_button_callback_t)(uint8_t button_id, board_button_event_t event);
 // esp_err_t board_button_register_callback(board_button_callback_t cb);
+esp_err_t board_led_change_relay_state(void);
 
-
+void board_adc_rms_init(void);
 #endif // __BOARD_HAL_H__

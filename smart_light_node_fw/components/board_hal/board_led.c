@@ -171,6 +171,7 @@ esp_err_t board_led_set_state(board_led_id_t led_id, board_led_state_t state)
 
     // Cập nhật trạng thái mới
     led->current_state = state;
+    ESP_LOGI(TAG, "Đặt trạng thái LED %d thành %d", led_id, state);
 
     switch (state) {
         case LED_STATE_OFF:
@@ -200,4 +201,14 @@ esp_err_t board_led_set_state(board_led_id_t led_id, board_led_state_t state)
     }
 
     return ESP_OK;
+}
+
+//hàm thay dổi trạng thái led relay theo trạng thái relay
+esp_err_t board_led_change_relay_state(void)
+{
+    if(led_config[RELAY_STATE_LED].current_state == LED_STATE_ON) {
+        return board_led_set_state(RELAY_STATE_LED, LED_STATE_OFF);
+    } else {
+        return board_led_set_state(RELAY_STATE_LED, LED_STATE_ON);
+    }
 }
