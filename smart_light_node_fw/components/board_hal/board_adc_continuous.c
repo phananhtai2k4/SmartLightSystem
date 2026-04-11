@@ -13,6 +13,7 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "esp_adc/adc_continuous.h"
+#include "sys_nvs.h"
 
 #define EXAMPLE_ADC_UNIT                    ADC_UNIT_1
 #define _EXAMPLE_ADC_UNIT_STR(unit)         #unit
@@ -130,12 +131,14 @@ void board_adc_rms_task(void *pvParameters)
 
                     double rms_raw = sqrt(sq_sum / valid_count);
                     double rms_current = (rms_raw * RMS_CALIBRATION_FACTOR > 0.004) ? (rms_raw * RMS_CALIBRATION_FACTOR) : 0.0;
+                    saved_status.current_rms = rms_current*1000; // Lưu giá trị RMS hiện tại tính được (đơn vị mA)
 
                     // In log sau mỗi 500ms để không làm chậm hệ thống
                     static uint32_t last_log_time = 0;
                     if (xTaskGetTickCount() - last_log_time > pdMS_TO_TICKS(500)) {
                         ESP_LOGI(TAG, "Offset: %.2f, RMS Raw: %.2f, Current: %.4f A", voltageOffset, rms_raw, rms_current);
                         last_log_time = xTaskGetTickCount();
+                        sys_nvs_save_device_status(&saved_status);
                     }
                 }
             } else if (ret == ESP_ERR_TIMEOUT) {

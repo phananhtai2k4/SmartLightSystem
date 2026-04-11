@@ -17,7 +17,6 @@
 // Khai báo biến extern để truy cập trực tiếp vào trạng thái của OnOff Server model
 // Điều này cần thiết để cập nhật trạng thái logic của model.
 extern esp_ble_mesh_gen_onoff_srv_t onoff_server;
-
 /**
  * @brief Xử lý một sự kiện OnOff Set nhận được từ mạng BLE Mesh.
  */
@@ -35,10 +34,14 @@ static void handle_onoff_set_event(const event_data_onoff_set_t *onoff_data)
     board_led_set_state(RELAY_STATE_LED, onoff_data->onoff_state ? LED_STATE_ON : LED_STATE_OFF);
     
     // 3. Lưu trạng thái mới vào NVS để khôi phục sau khi khởi động lại
-    relay_state_t state_to_save = { .onoff = onoff_data->onoff_state };
-    esp_err_t err = sys_nvs_save_relay_state(&state_to_save);
+    device_status_t status_to_save = {
+        .onoff = onoff_data->onoff_state,
+        .light_intensity = board_adc_get_lux(),
+        .current_rms = board_adc_get_current()
+    };
+    esp_err_t err = sys_nvs_save_device_status(&status_to_save);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Không thể lưu trạng thái relay vào NVS!");
+        ESP_LOGE(TAG, "Không thể lưu trạng thái thiết bị vào NVS!");
     }
 }
 
@@ -60,8 +63,12 @@ static void handle_button_press_event(void)
     board_led_set_state(RELAY_STATE_LED, new_state ? LED_STATE_ON : LED_STATE_OFF);
 
     // 3. Lưu trạng thái mới vào NVS
-    relay_state_t state_to_save = { .onoff = new_state };
-    sys_nvs_save_relay_state(&state_to_save);
+    device_status_t status_to_save = {
+        .onoff = new_state,
+        .light_intensity = board_adc_get_lux(),
+        .current_rms = board_adc_get_current()
+    };
+    sys_nvs_save_device_status(&status_to_save);
 
     // 4. Publish trạng thái mới lên mạng để các thiết bị khác đồng bộ
     ble_mesh_core_publish_onoff_status();
@@ -79,11 +86,10 @@ void app_event_handler(const app_event_t *event)
     case EVENT_SYSTEM_STARTUP:
         ESP_LOGI(TAG, "Sự kiện: Hệ thống khởi động.");
         // Khi khởi động, đọc trạng thái đã lưu từ NVS
-        relay_state_t saved_state;
-        if (sys_nvs_load_relay_state(&saved_state) == ESP_OK) {
-            ESP_LOGI(TAG, "Đã tìm thấy trạng thái đã lưu, khôi phục onoff = %d", saved_state.onoff);
-            onoff_server.state.onoff = saved_state.onoff;
-            board_led_set_state(RELAY_STATE_LED, saved_state.onoff ? LED_STATE_ON : LED_STATE_OFF);
+        if (sys_nvs_load_device_status(&saved_status) == ESP_OK) {
+            ESP_LOGI(TAG, "Đã tìm thấy trạng thái đã lưu, khôi phục onoff = %d, lux=%.2f, current=%.4fA", saved_status.onoff, saved_status.light_intensity, saved_status.current_rms);
+            onoff_server.state.onoff = saved_status.onoff;
+            board_led_set_state(RELAY_STATE_LED, saved_status.onoff ? LED_STATE_ON : LED_STATE_OFF);
         } else {
             ESP_LOGI(TAG, "Không có trạng thái nào được lưu, dùng trạng thái mặc định: TẮT");
             onoff_server.state.onoff = 0;

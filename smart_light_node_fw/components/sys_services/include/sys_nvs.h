@@ -28,14 +28,17 @@ extern boot_flag_t boot_flag;
  */
 
 /**
- * @brief Cấu trúc lưu trữ trạng thái của relay vật lý.
+ * @brief Cấu trúc lưu trữ trạng thái của node IoT.
  * 
- * Ví dụ đơn giản, có thể mở rộng để lưu nhiều relay.
+ * Lưu trữ trạng thái relay, cường độ sáng và cường độ dòng điện.
  */
 typedef struct {
-    uint8_t onoff; // 0 = OFF, 1 = ON
-} relay_state_t;
+    uint8_t onoff;         // 0 = OFF, 1 = ON
+    float light_intensity; // Lux
+    double current_rms;    // A
+} device_status_t;
 
+extern device_status_t saved_status;
 /**
  * @brief Cấu trúc lưu trữ thông tin mạng BLE Mesh cần thiết.
  * 
@@ -66,22 +69,20 @@ typedef struct {
 esp_err_t sys_nvs_init(void);
 
 /**
- * @brief Lưu trạng thái hiện tại của relay vào NVS.
+ * @brief Lưu trạng thái thiết bị (relay, lux, current) vào NVS.
  *
- * @param state Con trỏ tới cấu trúc chứa trạng thái cần lưu.
+ * @param status Con trỏ tới cấu trúc chứa trạng thái cần lưu.
  * @return esp_err_t ESP_OK nếu thành công.
  */
-esp_err_t sys_nvs_save_relay_state(const relay_state_t *state);
+esp_err_t sys_nvs_save_device_status(const device_status_t *status);
 
 /**
- * @brief Đọc trạng thái relay đã lưu từ NVS.
+ * @brief Đọc trạng thái thiết bị đã lưu từ NVS.
  *
- * @param state Con trỏ tới một cấu trúc để điền dữ liệu đọc được.
- * @return esp_err_t ESP_OK nếu tìm thấy và đọc thành công,
- *                   ESP_ERR_NVS_NOT_FOUND nếu chưa có dữ liệu,
- *                   hoặc mã lỗi khác nếu thất bại.
+ * @param status Con trỏ tới một cấu trúc để điền dữ liệu đọc được.
+ * @return esp_err_t ESP_OK nếu tìm thấy và đọc thành công...
  */
-esp_err_t sys_nvs_load_relay_state(relay_state_t *state);
+esp_err_t sys_nvs_load_device_status(device_status_t *status);
 
 /**
  * @brief Lưu thông tin mạng BLE Mesh vào NVS.

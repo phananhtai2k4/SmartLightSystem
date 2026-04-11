@@ -74,5 +74,7 @@ void boot_flag_change_process();
 esp_err_t board_led_change_relay_state(void);
 
 void board_adc_rms_init(void);
+float board_adc_get_lux(void);
+double board_adc_get_current(void);
 int board_led_get_relay_state(void);
 #endif // __BOARD_HAL_H__

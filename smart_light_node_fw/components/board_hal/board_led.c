@@ -171,6 +171,8 @@ esp_err_t board_led_set_state(board_led_id_t led_id, board_led_state_t state)
 
     // Cập nhật trạng thái mới
     led->current_state = state;
+    saved_status.onoff = board_led_get_relay_state();
+    sys_nvs_save_device_status(&saved_status);
     ESP_LOGI(TAG, "Đặt trạng thái LED %d thành %d", led_id, state);
 
     switch (state) {

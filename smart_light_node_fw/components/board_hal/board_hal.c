@@ -11,8 +11,6 @@
 
 #define TAG "BOARD_HAL"
 
-// Khai báo các hàm khởi tạo nội bộ từ các file khác trong cùng component.
-// Chúng ta không cần đưa các hàm này vào file .h công khai.
 extern esp_err_t board_led_init(void);
 extern esp_err_t board_button_init(void);
 extern esp_err_t board_adc_init(void);

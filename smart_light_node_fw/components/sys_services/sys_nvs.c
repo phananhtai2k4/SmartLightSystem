@@ -16,12 +16,12 @@ boot_flag_t boot_flag;
 #define NVS_NAMESPACE "smart_relay"
 
 // Định nghĩa tên các "khóa" (key) để lưu các mẩu dữ liệu khác nhau.
-#define KEY_RELAY_STATE "relay_state"
+#define KEY_DEVICE_STATUS "device_status"
 #define KEY_BLE_MESH_INFO "ble_mesh_info"
 
 // Biến static để giữ handle của namespace.
 static nvs_handle_t nvs_app_handle;
-
+device_status_t saved_status;
 /*
  * =====================================================================================
  * CÁC HÀM API CÔNG KHAI
@@ -86,16 +86,16 @@ static esp_err_t load_blob(const char *key, void *data, size_t *length)
 }
 
 
-esp_err_t sys_nvs_save_relay_state(const relay_state_t *state)
+esp_err_t sys_nvs_save_device_status(const device_status_t *status)
 {
-    ESP_LOGD(TAG, "Đang lưu trạng thái relay: %d", state->onoff);
-    return save_blob(KEY_RELAY_STATE, state, sizeof(relay_state_t));
+    ESP_LOGD(TAG, "Đang lưu trạng thái thiết bị: onoff=%d, lux=%.2f, current=%.4fA", status->onoff, status->light_intensity, status->current_rms);
+    return save_blob(KEY_DEVICE_STATUS, status, sizeof(device_status_t));
 }
 
-esp_err_t sys_nvs_load_relay_state(relay_state_t *state)
+esp_err_t sys_nvs_load_device_status(device_status_t *status)
 {
-    size_t length = sizeof(relay_state_t);
-    return load_blob(KEY_RELAY_STATE, state, &length);
+    size_t length = sizeof(device_status_t);
+    return load_blob(KEY_DEVICE_STATUS, status, &length);
 }
 
 esp_err_t sys_nvs_save_ble_mesh_info(const ble_mesh_info_t *info)

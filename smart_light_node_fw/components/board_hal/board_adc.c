@@ -11,13 +11,14 @@
 #include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
+#include "sys_nvs.h"
 
 #define TAG "BOARD_ADC"
 
 #define BOARD_ADC_UNIT           ADC_UNIT_1
 #define BOARD_ADC_CHANNEL        ADC_CHANNEL_6  // Chân GPIO34
 #define BOARD_ADC_ATTEN          ADC_ATTEN_DB_12
-#define BOARD_ADC_READ_PERIOD_MS 3000
+#define BOARD_ADC_READ_PERIOD_MS 5000
 
 static adc_oneshot_unit_handle_t s_adc_handle = NULL;
 static adc_cali_handle_t s_adc_cali_handle = NULL;
@@ -106,11 +107,14 @@ static void board_adc_task(void *arg)
 
                         // Calculate Lux (approximate formula for GL5528 LDR)
                         float lux = 500.0 / r_ldr_kOhm;
+                        saved_status.light_intensity = lux;
 
                         ESP_LOGI(TAG, "LDR resistance: %.2f kOhm | Light intensity: %.2f Lux", r_ldr_kOhm, lux);
                     } else {
+                        saved_status.light_intensity = 0.0;
                         ESP_LOGI(TAG, "Complete darkness (0 Lux)");
                     }
+                    sys_nvs_save_device_status(&saved_status);
                 } else {
                     ESP_LOGW(TAG, "Convert raw to voltage failed: %s", esp_err_to_name(ret));
                 }
