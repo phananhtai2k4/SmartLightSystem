@@ -47,6 +47,8 @@ static void handle_onoff_state_change(esp_ble_mesh_model_t *model, esp_ble_mesh_
         sizeof(onoff_server.state.onoff), &onoff_server.state.onoff, ROLE_NODE);
 }
 
+static uint16_t g_node_address = ESP_BLE_MESH_ADDR_UNASSIGNED;
+
 /*
  * =====================================================================================
  * CALLBACK CHO PROVISIONING
@@ -78,6 +80,7 @@ void ble_mesh_provisioning_cb(esp_ble_mesh_prov_cb_event_t event,
             param->node_prov_complete.addr,
             param->node_prov_complete.flags,
             param->node_prov_complete.iv_index);
+            g_node_address = param->node_prov_complete.addr;
 
         // Provisioning đã hoàn tất, gửi sự kiện này đến lớp logic ứng dụng
         app_event_t app_event = { .type = EVENT_MESH_PROV_COMPLETE };
@@ -110,6 +113,20 @@ void ble_mesh_config_server_cb(esp_ble_mesh_cfg_server_cb_event_t event,
         ESP_LOGI(TAG, "CFG: APP_KEY_ADD, net_idx 0x%04x, app_idx 0x%04x",
             param->value.state_change.appkey_add.net_idx,
             param->value.state_change.appkey_add.app_idx);
+            ESP_LOG_BUFFER_HEX("CONFIG_CALLBACK", param->value.state_change.appkey_add.app_key, 16);
+            // Lấy thông tin cần thiết từ sự kiện
+            uint16_t app_idx = param->value.state_change.appkey_add.app_idx;
+
+            ESP_LOGW(TAG, "=========== BẮT ĐƯỢC APPKEY, BẮT ĐẦU TỰ BIND (phương pháp gán trực tiếp) ===========");
+
+            // Bind lại OnOff Client
+            esp_ble_mesh_node_bind_app_key_to_local_model(g_node_address, 0xFFFF,
+                                                        ESP_BLE_MESH_MODEL_ID_GEN_ONOFF_CLI, app_idx);
+            // Bind lại OnOff Server
+            esp_ble_mesh_node_bind_app_key_to_local_model(g_node_address, 0xFFFF,
+                                                        ESP_BLE_MESH_MODEL_ID_GEN_ONOFF_SRV, app_idx);
+            
+            ESP_LOGW(TAG, "=========== TỰ BIND HOÀN TẤT, NODE SẴN SÀNG ===========");
         break;
 
     case ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND:

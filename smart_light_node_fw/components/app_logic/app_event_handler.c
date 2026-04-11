@@ -50,7 +50,7 @@ static void handle_button_press_event(void)
     ESP_LOGI(TAG, "Xử lý sự kiện nhấn nút...");
 
     // Logic: Đảo ngược trạng thái hiện tại của relay
-    uint8_t new_state = !onoff_server.state.onoff;
+    uint8_t new_state = board_led_get_relay_state();
 
     // 1. Cập nhật trạng thái logic của model
     onoff_server.state.onoff = new_state;
@@ -94,7 +94,6 @@ void app_event_handler(const app_event_t *event)
     case EVENT_MESH_PROV_COMPLETE:
         ESP_LOGI(TAG, "Sự kiện: Provisioning hoàn tất.");
         boot_flags_write(BOOT_FLAG_ADDED_DEVICE);
-        auto_rebind_on_startup();
         break;
         
     case EVENT_MESH_GENERIC_ONOFF_SET_RECEIVED:
@@ -106,7 +105,8 @@ void app_event_handler(const app_event_t *event)
                 boot_flags_write(BOOT_FLAG_NORMAL_START);
                 vTaskDelay(200 / portTICK_PERIOD_MS);
                 esp_restart();
-            }
+        }
+        handle_button_press_event();
         break;
 
     // Thêm các case khác ở đây, ví dụ:

@@ -212,3 +212,9 @@ esp_err_t board_led_change_relay_state(void)
         return board_led_set_state(RELAY_STATE_LED, LED_STATE_ON);
     }
 }
+
+//hàm lấy trạng thái đèn relay
+int board_led_get_relay_state(void)
+{
+    return led_config[RELAY_STATE_LED].current_state==LED_STATE_OFF ? 0 : 1;
+}
