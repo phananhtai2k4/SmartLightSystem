@@ -42,19 +42,57 @@ static esp_ble_mesh_prov_t provision_info = {
 #endif
 };
 
-// static void setup_provisioning_info(void)
-// {
-//     // Lấy UUID từ địa chỉ MAC để đảm bảo nó là duy nhất
-//     // Hàm này được cung cấp bởi ESP-IDF trong các ví dụ, bạn có thể cần tự triển khai
-//     // hoặc sao chép từ thư mục common_components của ví dụ.
-//     // Tạm thời, chúng ta sẽ giả sử nó đã có.
-//     // ble_mesh_get_dev_uuid(dev_uuid); // Uncomment this if you have the helper function
+esp_ble_mesh_model_t *ble_mesh_core_find_vendor_model(const esp_ble_mesh_elem_t *element, uint16_t company_id, uint16_t model_id)
+{
+    if (element == NULL) {
+        return NULL;
+    }
 
-//     provision_info.uuid = dev_uuid;
-//     // Tắt OOB để đơn giản hóa quá trình provisioning
-//     provision_info.output_size = 0;
-//     provision_info.output_actions = 0;
-// }
+    // Duyệt qua tất cả các Vendor Model trong element
+    for (int i = 0; i < element->vnd_model_count; i++) {
+        esp_ble_mesh_model_t *vnd_model = &element->vnd_models[i];
+        if (vnd_model->vnd.company_id == company_id && vnd_model->vnd.model_id == model_id) {
+            return vnd_model; // Tìm thấy!
+        }
+    }
+
+    return NULL; // Không tìm thấy
+}
+
+esp_err_t self_bind_vendor_model(uint16_t element_addr, uint16_t app_idx, 
+                                        uint16_t model_id, uint16_t company_id)
+{
+    esp_ble_mesh_elem_t *element = esp_ble_mesh_find_element(element_addr);
+    if (!element) {
+        ESP_LOGE(TAG, "self_bind: Không tìm thấy element tại địa chỉ 0x%04x", element_addr);
+        return ESP_FAIL;
+    }
+    esp_ble_mesh_model_t *model = ble_mesh_core_find_vendor_model(element, company_id, model_id);
+    if (!model) {
+        ESP_LOGE(TAG, "self_bind: Không tìm thấy model (cid 0x%04x, mod_id 0x%04x)", company_id, model_id);
+        return ESP_FAIL;
+    }
+
+    // Duyệt qua mảng keys của model
+    for (int i = 0; i < ARRAY_SIZE(model->keys); i++) {
+        if (model->keys[i] == app_idx) {
+            ESP_LOGW(TAG, "self_bind: AppKey 0x%04x đã được bind vào model này rồi.", app_idx);
+            return ESP_OK; // Đã được bind, không cần làm gì thêm
+        }
+    }
+
+    // Tìm một vị trí trống để gán app_idx
+    for (int i = 0; i < ARRAY_SIZE(model->keys); i++) {
+        if (model->keys[i] == ESP_BLE_MESH_KEY_UNUSED) {
+            model->keys[i] = app_idx;
+            ESP_LOGI(TAG, "self_bind: Gán thành công AppKey 0x%04x vào vị trí %d của model.", app_idx, i);
+            return ESP_OK;
+        }
+    }
+
+    ESP_LOGE(TAG, "self_bind: Không còn vị trí trống để bind AppKey vào model.");
+    return ESP_FAIL;
+}
 
 /**
  * @brief Tự động bind lại các model khi khởi động nếu cần.
@@ -71,6 +109,8 @@ void auto_rebind_on_startup(void)
     // Lấy địa chỉ unicast của chính node này
     uint16_t self_addr = esp_ble_mesh_get_primary_element_address();
     uint16_t app_idx = 0; // Giả định AppKey đầu tiên luôn là index 0
+    // Bind lại Control Server
+    self_bind_vendor_model(self_addr, app_idx, MESH_VND_MODEL_ID_CONTROL_SERVER, CID_ESP);
 
     // Bind lại OnOff Client
     esp_ble_mesh_node_bind_app_key_to_local_model(self_addr, 0xFFFF,
@@ -94,6 +134,7 @@ esp_err_t ble_mesh_core_init(void)
     esp_ble_mesh_register_config_server_callback(ble_mesh_config_server_cb);
     esp_ble_mesh_register_generic_server_callback(ble_mesh_generic_server_cb);
     esp_ble_mesh_register_generic_client_callback(ble_mesh_generic_client_cb);
+    esp_ble_mesh_register_custom_model_callback(ble_mesh_custom_model_cb);
 
     // 3. Khởi tạo BLE Mesh stack với cấu trúc node đã định nghĩa
     // Biến 'composition' được lấy từ file ble_mesh_composition.c

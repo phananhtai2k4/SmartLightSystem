@@ -9,6 +9,7 @@
 #include "esp_ble_mesh_common_api.h"
 #include "esp_ble_mesh_config_model_api.h"
 #include "esp_ble_mesh_generic_model_api.h"
+#include "ble_mesh_core.h"
 
 // Định nghĩa Company ID (CID) của Espressif.
 // Bạn có thể đăng ký một CID riêng cho công ty của mình.
@@ -44,6 +45,12 @@ static esp_ble_mesh_cfg_srv_t config_server = {
     .relay_retransmit = ESP_BLE_MESH_TRANSMIT(2, 20),
 };
 
+ESP_BLE_MESH_MODEL_PUB_DEFINE(control_srv_pub, 3 + 16, ROLE_NODE); // Opcode (3) + Payload tối đa (ví dụ 4 kênh * 3 byte/kênh)
+static esp_ble_mesh_model_op_t control_srv_op[] = {
+    ESP_BLE_MESH_MODEL_OP(MESH_VND_OP_SSW_SET_DATA, 1),
+    ESP_BLE_MESH_MODEL_OP(MESH_VND_OP_SSW_GET_DATA, 0),
+    ESP_BLE_MESH_MODEL_OP_END,
+};
 
 // --- Các biến cho Generic OnOff Server Model ---
 // Model này cho phép Node nhận lệnh Bật/Tắt từ các Client.
@@ -76,13 +83,18 @@ static esp_ble_mesh_model_t root_models[] = {
     ESP_BLE_MESH_MODEL_GEN_ONOFF_CLI(&onoff_pub_cli, &onoff_client),
 };
 
+// Model Vendor cho Element 0 (root)
+esp_ble_mesh_model_t vnd_models_root[] = {
+    ESP_BLE_MESH_VENDOR_MODEL(CID_ESP, MESH_VND_MODEL_ID_CONTROL_SERVER, control_srv_op, &control_srv_pub, NULL),
+};
+
 // Mảng chứa tất cả các Element của Node.
 // Đối với một relay đơn, chúng ta chỉ cần một Element duy nhất.
 // Địa chỉ của Element này sẽ là Primary Address của Node.
 static esp_ble_mesh_elem_t elements[] = {
     // Định nghĩa Element tại địa chỉ offset 0, chứa các model trong root_models.
     // Không có model nào của SIG hoặc Vendor ở cấp độ thứ hai.
-    ESP_BLE_MESH_ELEMENT(0, root_models, ESP_BLE_MESH_MODEL_NONE),
+    ESP_BLE_MESH_ELEMENT(0, root_models, vnd_models_root),
 };
 
 

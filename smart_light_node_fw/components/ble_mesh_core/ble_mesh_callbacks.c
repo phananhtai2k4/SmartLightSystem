@@ -277,3 +277,42 @@ void ble_mesh_generic_client_cb(esp_ble_mesh_generic_client_cb_event_t event,
         break;
     }
 }
+
+/*
+ * =====================================================================================
+ * CÁC HÀM CALLBACK VENDOR MODELS
+ * =====================================================================================
+ */
+
+void ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
+                              esp_ble_mesh_model_cb_param_t *param)
+{
+    switch (event) {
+    case ESP_BLE_MESH_MODEL_OPERATION_EVT: {
+        ESP_LOGI(TAG, "ESP_BLE_MESH_MODEL_OPERATION_EVT");
+        // Kiểm tra model ID để gọi đúng parser
+        if (param->model_operation.model->vnd.model_id == MESH_VND_MODEL_ID_CONTROL_SERVER) {
+            ESP_LOGI(TAG, "Control Server Model ID: 0x%04x", param->model_operation.model->vnd.model_id);
+            ESP_LOGI(TAG, "Received opcode: 0x%06" PRIx32, param->model_operation.opcode);
+            // parse_control_payload(param->model_operation.model,
+            //                       param->model_operation.ctx,
+            //                       param->model_operation.msg,
+            //                       param->model_operation.length);
+        } else {
+            ESP_LOGW(TAG, "Unknown Vendor Model ID: 0x%04x",
+                     param->model_operation.model->vnd.model_id);
+        }
+        break;
+    }
+    case ESP_BLE_MESH_MODEL_SEND_COMP_EVT:
+        ESP_LOGI(TAG, "Vendor Send Complete, opcode 0x%06" PRIx32, param->model_send_comp.opcode);
+        break;
+    
+    case ESP_BLE_MESH_MODEL_PUBLISH_COMP_EVT:
+        ESP_LOGI(TAG, "Vendor Publish Complete");
+        break; 
+    default:
+        ESP_LOGW(TAG, "Unknown Custom Model event: 0x%02x", event);
+        break;
+    }
+}
