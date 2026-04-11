@@ -62,7 +62,6 @@ static void app_main_task(void *arg) {
                         ESP_LOGE(TAG, "FATAL: Could not write boot flag! Aborting reset.");
                     }
                     vTaskDelay(pdMS_TO_TICKS(2000));
-                    auto_rebind_on_startup();
                     break;
                     
                 case EVENT_MESH_GENERIC_ONOFF_SET_RECEIVED:

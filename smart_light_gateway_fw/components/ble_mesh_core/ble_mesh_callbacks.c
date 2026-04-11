@@ -29,6 +29,8 @@ static void handle_onoff_state_change(esp_ble_mesh_model_t *model, esp_ble_mesh_
         sizeof(onoff_server.state.onoff), &onoff_server.state.onoff, ROLE_NODE);
 }
 
+static uint16_t g_node_address = ESP_BLE_MESH_ADDR_UNASSIGNED;
+
 void ble_mesh_provisioning_cb(esp_ble_mesh_prov_cb_event_t event,
                               esp_ble_mesh_prov_cb_param_t *param)
 {
@@ -54,6 +56,7 @@ void ble_mesh_provisioning_cb(esp_ble_mesh_prov_cb_event_t event,
             param->node_prov_complete.addr,
             param->node_prov_complete.flags,
             param->node_prov_complete.iv_index);
+            g_node_address = param->node_prov_complete.addr;
         app_event_t app_event = { .type = EVENT_MESH_PROV_COMPLETE };
         sys_event_queue_send(&app_event);
         break;
@@ -75,6 +78,23 @@ void ble_mesh_config_server_cb(esp_ble_mesh_cfg_server_cb_event_t event,
         ESP_LOGI(TAG, "CFG: APP_KEY_ADD, net_idx 0x%04x, app_idx 0x%04x",
             param->value.state_change.appkey_add.net_idx,
             param->value.state_change.appkey_add.app_idx);
+            ESP_LOG_BUFFER_HEX("CONFIG_CALLBACK", param->value.state_change.appkey_add.app_key, 16);
+            // Lấy thông tin cần thiết từ sự kiện
+            uint16_t app_idx = param->value.state_change.appkey_add.app_idx;
+
+            ESP_LOGW(TAG, "=========== BẮT ĐƯỢC APPKEY, BẮT ĐẦU TỰ BIND (phương pháp gán trực tiếp) ===========");
+            // Tự bind Control Server
+            self_bind_vendor_model(g_node_address, app_idx, 
+                                MESH_VND_MODEL_ID_CONTROL_SERVER, CID_ESP);
+                                
+            // Bind lại OnOff Client
+            esp_ble_mesh_node_bind_app_key_to_local_model(g_node_address, 0xFFFF,
+                                                        ESP_BLE_MESH_MODEL_ID_GEN_ONOFF_CLI, app_idx);
+            // Bind lại OnOff Server
+            esp_ble_mesh_node_bind_app_key_to_local_model(g_node_address, 0xFFFF,
+                                                        ESP_BLE_MESH_MODEL_ID_GEN_ONOFF_SRV, app_idx);
+            
+            ESP_LOGW(TAG, "=========== TỰ BIND HOÀN TẤT, NODE SẴN SÀNG ===========");
         break;
 
     case ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND:
@@ -195,6 +215,45 @@ void ble_mesh_generic_client_cb(esp_ble_mesh_generic_client_cb_event_t event,
         ESP_LOGW(TAG, "Client timeout: message to 0x%04x failed", param->params->ctx.addr);
         break;
     default:
+        break;
+    }
+}
+
+/*
+ * =====================================================================================
+ * CÁC HÀM CALLBACK VENDOR MODELS
+ * =====================================================================================
+ */
+
+void ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
+                              esp_ble_mesh_model_cb_param_t *param)
+{
+    switch (event) {
+    case ESP_BLE_MESH_MODEL_OPERATION_EVT: {
+        ESP_LOGI(TAG, "ESP_BLE_MESH_MODEL_OPERATION_EVT");
+        // Kiểm tra model ID để gọi đúng parser
+        if (param->model_operation.model->vnd.model_id == MESH_VND_MODEL_ID_CONTROL_SERVER) {
+            ESP_LOGI(TAG, "Control Server Model ID: 0x%04x", param->model_operation.model->vnd.model_id);
+            ESP_LOGI(TAG, "Received opcode: 0x%06" PRIx32, param->model_operation.opcode);
+            // parse_control_payload(param->model_operation.model,
+            //                       param->model_operation.ctx,
+            //                       param->model_operation.msg,
+            //                       param->model_operation.length);
+        } else {
+            ESP_LOGW(TAG, "Unknown Vendor Model ID: 0x%04x",
+                     param->model_operation.model->vnd.model_id);
+        }
+        break;
+    }
+    case ESP_BLE_MESH_MODEL_SEND_COMP_EVT:
+        ESP_LOGI(TAG, "Vendor Send Complete, opcode 0x%06" PRIx32, param->model_send_comp.opcode);
+        break;
+    
+    case ESP_BLE_MESH_MODEL_PUBLISH_COMP_EVT:
+        ESP_LOGI(TAG, "Vendor Publish Complete");
+        break; 
+    default:
+        ESP_LOGW(TAG, "Unknown Custom Model event: 0x%02x", event);
         break;
     }
 }

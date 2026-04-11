@@ -21,15 +21,21 @@ extern void ble_mesh_provisioning_cb(esp_ble_mesh_prov_cb_event_t event, esp_ble
 extern void ble_mesh_config_server_cb(esp_ble_mesh_cfg_server_cb_event_t event, esp_ble_mesh_cfg_server_cb_param_t *param);
 extern void ble_mesh_generic_server_cb(esp_ble_mesh_generic_server_cb_event_t event, esp_ble_mesh_generic_server_cb_param_t *param);
 extern void ble_mesh_generic_client_cb(esp_ble_mesh_generic_client_cb_event_t event, esp_ble_mesh_generic_client_cb_param_t *param);
+extern void ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event, esp_ble_mesh_model_cb_param_t *param);
 
 #define CID_ESP 0x02E5 // Company ID của Espressif
-
+#define CID_CONTROL 0x01 // Company ID của Control
 // Opcode tùy chỉnh cho việc set và status
 #define MESH_VND_MODEL_OP_GET_STATE       ESP_BLE_MESH_MODEL_OP_3(0x01, CID_ESP)
 #define MESH_VND_MODEL_OP_SET_STATE       ESP_BLE_MESH_MODEL_OP_3(0x02, CID_ESP)
 #define MESH_VND_MODEL_OP_SET_STATE_UNACK ESP_BLE_MESH_MODEL_OP_3(0x03, CID_ESP)
 #define MESH_VND_MODEL_OP_STATUS          ESP_BLE_MESH_MODEL_OP_3(0x04, CID_ESP)
-
+#define MESH_VND_MODEL_ID_CONTROL_SERVER  0x11
+// --- Opcodes cho Control Server ---
+#define MESH_VND_OP_SSW_SET_DATA          ESP_BLE_MESH_MODEL_OP_3(0x0F, CID_CONTROL)
+#define MESH_VND_OP_SSW_SET_DATA_STATUS   ESP_BLE_MESH_MODEL_OP_3(0x10, CID_CONTROL)
+#define MESH_VND_OP_SSW_GET_DATA          ESP_BLE_MESH_MODEL_OP_3(0x11, CID_CONTROL)
+#define MESH_VND_OP_SSW_GET_DATA_STATUS   ESP_BLE_MESH_MODEL_OP_3(0x12, CID_CONTROL)
 // Cấu trúc dữ liệu tùy chỉnh cho payload
 typedef struct __attribute__((packed)) {
     uint8_t state_led_1; // 0 = OFF, 1 = ON
@@ -89,4 +95,6 @@ esp_err_t ble_mesh_core_node_local_reset(void);
 esp_err_t ble_mesh_core_node_prov_enable(void);
 esp_err_t ble_mesh_core_node_prov_enable_adding_gw(void);
 void auto_rebind_on_startup(void);
+esp_err_t self_bind_vendor_model(uint16_t element_addr, uint16_t app_idx, 
+                                        uint16_t model_id, uint16_t company_id);
 #endif // __BLE_MESH_CORE_H__

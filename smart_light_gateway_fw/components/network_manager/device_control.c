@@ -22,7 +22,7 @@ void send_response(const char *response, cmd_type_t type) {
         udp_service_send_broadcast1(response, strlen(response), 0);
     } else if (type == CMD_TYPE_MQTT) {
         if (mqtt_service_is_connected()) {
-            mqtt_service_publish(mqtt_config.topic_pub, response, 0, 1, 0);
+            mqtt_service_publish(mqtt_config.topic_pub, response, strlen(response), 1, 0);
         }
     }
 }
