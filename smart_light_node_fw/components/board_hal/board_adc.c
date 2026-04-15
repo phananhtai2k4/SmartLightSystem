@@ -107,11 +107,11 @@ static void board_adc_task(void *arg)
 
                         // Calculate Lux (approximate formula for GL5528 LDR)
                         float lux = 500.0 / r_ldr_kOhm;
-                        saved_status.light_intensity = lux;
+                        saved_status.light_lux = (uint16_t)lux;
 
                         ESP_LOGI(TAG, "LDR resistance: %.2f kOhm | Light intensity: %.2f Lux", r_ldr_kOhm, lux);
                     } else {
-                        saved_status.light_intensity = 0.0;
+                        saved_status.light_lux = 0.0;
                         ESP_LOGI(TAG, "Complete darkness (0 Lux)");
                     }
                     sys_nvs_save_device_status(&saved_status);

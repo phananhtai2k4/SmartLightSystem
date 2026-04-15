@@ -32,17 +32,6 @@ static void handle_onoff_set_event(const event_data_onoff_set_t *onoff_data)
     // Giả sử có hàm board_relay_set_state() trong board_hal
     // board_relay_set_state(onoff_data->onoff_state); 
     board_led_set_state(RELAY_STATE_LED, onoff_data->onoff_state ? LED_STATE_ON : LED_STATE_OFF);
-    
-    // 3. Lưu trạng thái mới vào NVS để khôi phục sau khi khởi động lại
-    device_status_t status_to_save = {
-        .onoff = onoff_data->onoff_state,
-        .light_intensity = board_adc_get_lux(),
-        .current_rms = board_adc_get_current()
-    };
-    esp_err_t err = sys_nvs_save_device_status(&status_to_save);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Không thể lưu trạng thái thiết bị vào NVS!");
-    }
 }
 
 /**
@@ -57,18 +46,6 @@ static void handle_button_press_event(void)
 
     // 1. Cập nhật trạng thái logic của model
     onoff_server.state.onoff = new_state;
-
-    // 2. Điều khiển phần cứng vật lý
-    // board_relay_set_state(new_state);
-    board_led_set_state(RELAY_STATE_LED, new_state ? LED_STATE_ON : LED_STATE_OFF);
-
-    // 3. Lưu trạng thái mới vào NVS
-    device_status_t status_to_save = {
-        .onoff = new_state,
-        .light_intensity = board_adc_get_lux(),
-        .current_rms = board_adc_get_current()
-    };
-    sys_nvs_save_device_status(&status_to_save);
 
     // 4. Publish trạng thái mới lên mạng để các thiết bị khác đồng bộ
     ble_mesh_core_publish_onoff_status();
@@ -87,7 +64,7 @@ void app_event_handler(const app_event_t *event)
         ESP_LOGI(TAG, "Sự kiện: Hệ thống khởi động.");
         // Khi khởi động, đọc trạng thái đã lưu từ NVS
         if (sys_nvs_load_device_status(&saved_status) == ESP_OK) {
-            ESP_LOGI(TAG, "Đã tìm thấy trạng thái đã lưu, khôi phục onoff = %d, lux=%.2f, current=%.4fA", saved_status.onoff, saved_status.light_intensity, saved_status.current_rms);
+            ESP_LOGI(TAG, "Đã tìm thấy trạng thái đã lưu, khôi phục onoff = %d, lux=%.2f, current=%.4fmA", saved_status.onoff, saved_status.light_lux, saved_status.current_ma);
             onoff_server.state.onoff = saved_status.onoff;
             board_led_set_state(RELAY_STATE_LED, saved_status.onoff ? LED_STATE_ON : LED_STATE_OFF);
         } else {

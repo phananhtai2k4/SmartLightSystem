@@ -18,6 +18,7 @@
 #include "esp_ble_mesh_config_model_api.h"
 #include "esp_ble_mesh_generic_model_api.h"
 extern esp_ble_mesh_gen_onoff_srv_t onoff_server;
+extern esp_ble_mesh_model_t vnd_models_root[];
 extern void ble_mesh_provisioning_cb(esp_ble_mesh_prov_cb_event_t event, esp_ble_mesh_prov_cb_param_t *param);
 extern void ble_mesh_config_server_cb(esp_ble_mesh_cfg_server_cb_event_t event, esp_ble_mesh_cfg_server_cb_param_t *param);
 extern void ble_mesh_generic_server_cb(esp_ble_mesh_generic_server_cb_event_t event, esp_ble_mesh_generic_server_cb_param_t *param);
@@ -37,6 +38,10 @@ extern void ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event, esp_bl
 #define MESH_VND_OP_SSW_SET_DATA_STATUS   ESP_BLE_MESH_MODEL_OP_3(0x10, CID_CONTROL)
 #define MESH_VND_OP_SSW_GET_DATA          ESP_BLE_MESH_MODEL_OP_3(0x11, CID_CONTROL)
 #define MESH_VND_OP_SSW_GET_DATA_STATUS   ESP_BLE_MESH_MODEL_OP_3(0x12, CID_CONTROL)
+
+#define TLV_ONOFF        0x01
+#define TLV_LIGHT_LUX    0x02
+#define TLV_CURRENT_MA   0x03
 
 /**
  * @brief Khởi tạo toàn bộ stack và các thành phần của BLE Mesh.

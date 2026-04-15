@@ -33,14 +33,17 @@
 #endif
 
 // User required read length
-#define EXAMPLE_READ_LEN                    3000
-#define RMS_CALIBRATION_FACTOR              0.0001873
+#define EXAMPLE_READ_LEN                    4000
+#define RMS_CALIBRATION_FACTOR              0.00054317
 
 // Target: ADC1_CHANNEL_7 (GPIO35 on ESP32)
-static adc_channel_t channel[1] = {ADC_CHANNEL_7};
-
+// static adc_channel_t channel[1] = {ADC_CHANNEL_7};
+static adc_channel_t channel[1] = {ADC_CHANNEL_5};  // Chân GPIO32
 static TaskHandle_t s_task_handle;
 static const char *TAG = "BOARD_ADC_RMS";
+//đòng mac và min trong 1 lần đọc
+static double s_current_max = 0.0;
+static double s_current_min = 0.0;
 
 static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data)
 {
@@ -104,15 +107,27 @@ void board_adc_rms_task(void *pvParameters)
             ret = adc_continuous_read(handle, result, EXAMPLE_READ_LEN, &ret_num, 0);
             if (ret == ESP_OK) {
                 uint32_t num_samples = ret_num / SOC_ADC_DIGI_RESULT_BYTES;
+                if (ret_num != EXAMPLE_READ_LEN) {
+                    continue;
+                }
+                s_current_max = 0.0;
+                s_current_min = 0.0;
                 double current_sum = 0.0;
                 uint32_t valid_count = 0;
 
                 // Bước 1: Tính Offset trên TOÀN BỘ mẫu vừa đọc được
                 for (int i = 0; i < ret_num; i += SOC_ADC_DIGI_RESULT_BYTES) {
                     adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
-                    if (EXAMPLE_ADC_GET_CHANNEL(p) == ADC_CHANNEL_7) {
+                    if (EXAMPLE_ADC_GET_CHANNEL(p) == channel[0]) {
                         current_sum += EXAMPLE_ADC_GET_DATA(p);
                         valid_count++;
+                        double current = (double)EXAMPLE_ADC_GET_DATA(p);
+                        if (current > s_current_max) {
+                            s_current_max = current;
+                        }
+                        if (current < s_current_min) {
+                            s_current_min = current;
+                        }
                     }
                 }
 
@@ -123,7 +138,7 @@ void board_adc_rms_task(void *pvParameters)
                     // Bước 2: Tính RMS trên chính những mẫu đó
                     for (int i = 0; i < ret_num; i += SOC_ADC_DIGI_RESULT_BYTES) {
                         adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
-                        if (EXAMPLE_ADC_GET_CHANNEL(p) == ADC_CHANNEL_7) {
+                        if (EXAMPLE_ADC_GET_CHANNEL(p) == channel[0]) {
                             double diff = (double)EXAMPLE_ADC_GET_DATA(p) - voltageOffset;
                             sq_sum += diff * diff;
                         }
@@ -131,12 +146,12 @@ void board_adc_rms_task(void *pvParameters)
 
                     double rms_raw = sqrt(sq_sum / valid_count);
                     double rms_current = (rms_raw * RMS_CALIBRATION_FACTOR > 0.004) ? (rms_raw * RMS_CALIBRATION_FACTOR) : 0.0;
-                    saved_status.current_rms = rms_current*1000; // Lưu giá trị RMS hiện tại tính được (đơn vị mA)
+                    saved_status.current_ma = (uint16_t)(rms_current * 1000); // Lưu giá trị RMS hiện tại tính được (đơn vị mA)
 
                     // In log sau mỗi 500ms để không làm chậm hệ thống
                     static uint32_t last_log_time = 0;
                     if (xTaskGetTickCount() - last_log_time > pdMS_TO_TICKS(500)) {
-                        ESP_LOGI(TAG, "Offset: %.2f, RMS Raw: %.2f, Current: %.4f A", voltageOffset, rms_raw, rms_current);
+                        ESP_LOGI(TAG, "ret_num: %ld, Offset: %.2f, RMS Raw: %.2f, Current: %.4f A, Max: %.2f, Min: %.2f, avg: %.2f", ret_num, voltageOffset, rms_raw, rms_current, s_current_max, s_current_min, (s_current_max+s_current_min)/2);
                         last_log_time = xTaskGetTickCount();
                         sys_nvs_save_device_status(&saved_status);
                     }
@@ -157,3 +172,5 @@ void board_adc_rms_init(void)
     ESP_LOGI(TAG, "Creating ADC RMS Task...");
     xTaskCreatePinnedToCore(board_adc_rms_task, "adc_rms_task", 4096 * 2*3, NULL, 5, NULL, 1);
 }
+
+//biến trở xoay ngược kim đồng hồ thì dòng tăng, xoay cùng chiều kim đồng hồ thì dòng giảm

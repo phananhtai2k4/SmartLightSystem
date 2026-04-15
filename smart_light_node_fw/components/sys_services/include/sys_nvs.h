@@ -33,9 +33,9 @@ extern boot_flag_t boot_flag;
  * Lưu trữ trạng thái relay, cường độ sáng và cường độ dòng điện.
  */
 typedef struct {
-    uint8_t onoff;         // 0 = OFF, 1 = ON
-    float light_intensity; // Lux
-    double current_rms;    // A
+    uint8_t onoff;          // 1 byte
+    uint16_t light_lux;     // 2 bytes (0–65535 lux)
+    uint16_t current_ma;    // 2 bytes (mA)
 } device_status_t;
 
 extern device_status_t saved_status;

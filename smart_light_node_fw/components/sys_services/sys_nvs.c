@@ -88,7 +88,7 @@ static esp_err_t load_blob(const char *key, void *data, size_t *length)
 
 esp_err_t sys_nvs_save_device_status(const device_status_t *status)
 {
-    ESP_LOGD(TAG, "Đang lưu trạng thái thiết bị: onoff=%d, lux=%.2f, current=%.4fA", status->onoff, status->light_intensity, status->current_rms);
+    ESP_LOGD(TAG, "Đang lưu trạng thái thiết bị: onoff=%d, lux=%.2f, current=%.4fmA", status->onoff, status->light_lux, status->current_ma);
     return save_blob(KEY_DEVICE_STATUS, status, sizeof(device_status_t));
 }
 
