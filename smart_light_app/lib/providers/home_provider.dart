@@ -30,6 +30,7 @@ class HomeProvider extends ChangeNotifier {
   StreamSubscription? _gatewaysSubscription;
   StreamSubscription? _nodesSubscription;
   StreamSubscription? _mqttMessageSubscription;
+  StreamSubscription? _mqttConnectionSubscription;
 
   // Subscribed topics để tránh subscribe lại
   final Set<String> _subscribedTopics = {};
@@ -47,6 +48,24 @@ class HomeProvider extends ChangeNotifier {
   void setMqttService(MqttService mqttService) {
     _mqttService = mqttService;
     _setupMqttMessageListener();
+    _setupMqttConnectionListener();
+  }
+
+  /// Setup listener cho connect state
+  void _setupMqttConnectionListener() {
+    _mqttConnectionSubscription?.cancel();
+    _mqttConnectionSubscription = _mqttService?.connectionStatusStream.listen((
+      state,
+    ) {
+      if (state == MqttConnectionState.connected) {
+        debugPrint(
+          '✅ HomeProvider: MQTT connected, subscribing to gateway topics...',
+        );
+        // Xóa danh sách topic cũ để force subscribe lại
+        _subscribedTopics.clear();
+        _subscribeGatewayTopics();
+      }
+    });
   }
 
   /// Setup listener cho MQTT messages từ gateway
@@ -143,6 +162,7 @@ class HomeProvider extends ChangeNotifier {
   void dispose() {
     _cancelSubscriptions();
     _mqttMessageSubscription?.cancel();
+    _mqttConnectionSubscription?.cancel();
     super.dispose();
   }
 
