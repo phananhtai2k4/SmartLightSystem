@@ -169,8 +169,9 @@ class UserProvider extends ChangeNotifier {
     try {
       await _authService.signUp(email: email, password: password, name: name);
 
-      // Kết nối MQTT sau khi đăng ký thành công
-      await _connectMqtt();
+      // Firebase tự đăng nhập sau khi tạo tài khoản thành công.
+      // Gọi đăng xuất ngay lập tức để ép người dùng phải đăng nhập lại ở trang Login.
+      await _authService.signOut();
 
       _setLoading(false);
       return true;

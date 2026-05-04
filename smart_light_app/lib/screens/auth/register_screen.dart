@@ -14,7 +14,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passController = TextEditingController();
+  final _confirmPassController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   Widget build(BuildContext context) {
@@ -58,14 +61,59 @@ class _RegisterScreenState extends State<RegisterScreen> {
               // Input Password
               TextFormField(
                 controller: _passController,
-                obscureText: true,
-                decoration: const InputDecoration(
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
                   labelText: "Mật khẩu",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
                 ),
                 validator: (value) =>
                     value!.length < 6 ? "Mật khẩu phải > 6 ký tự" : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Input Confirm Password
+              TextFormField(
+                controller: _confirmPassController,
+                obscureText: _obscureConfirmPassword,
+                decoration: InputDecoration(
+                  labelText: "Nhập lại mật khẩu",
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirmPassword
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureConfirmPassword = !_obscureConfirmPassword;
+                      });
+                    },
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return "Vui lòng nhập lại mật khẩu";
+                  }
+                  if (value != _passController.text) {
+                    return "Mật khẩu không khớp";
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 30),
 

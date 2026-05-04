@@ -15,6 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passController = TextEditingController();
   final _formKey = GlobalKey<FormState>(); // Để kiểm tra form hợp lệ
+  bool _obscurePassword = true;
 
   @override
   Widget build(BuildContext context) {
@@ -63,11 +64,23 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Input Password
                 TextFormField(
                   controller: _passController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
                     labelText: "Mật khẩu",
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock),
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
                   ),
                   validator: (value) =>
                       value!.length < 6 ? "Mật khẩu phải > 6 ký tự" : null,

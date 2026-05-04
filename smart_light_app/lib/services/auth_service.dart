@@ -27,18 +27,40 @@ class AuthService {
 
       // Lưu thêm thông tin vào Firestore (Collection 'users')
       if (result.user != null) {
-        await _firestore
-            .collection(AppConstants.colUsers)
-            .doc(result.user!.uid)
-            .set({
-              'email': email,
-              'displayName': name,
-              'createdAt': FieldValue.serverTimestamp(), // Lấy giờ server
-              'userId': result.user!.uid,
-            });
+        final userId = result.user!.uid;
+        await _firestore.collection(AppConstants.colUsers).doc(userId).set({
+          'email': email,
+          'displayName': name,
+          'createdAt': FieldValue.serverTimestamp(), // Lấy giờ server
+          'userId': userId,
+        });
 
         // Cập nhật tên hiển thị trên Auth luôn
         await result.user!.updateDisplayName(name);
+
+        // --- BẮT ĐẦU: Tạo nhà mặc định cho user ---
+        final homeRef = _firestore.collection(AppConstants.colHomes).doc();
+        final homeId = homeRef.id;
+
+        // 1. Lưu thông tin nhà (Home)
+        await homeRef.set({
+          'homeId': homeId,
+          'name': 'Nhà của $name',
+          'description': 'Nhà mặc định',
+        });
+
+        // 2. Phân quyền chủ nhà (Owner) trong home_members
+        final memberDocId = '${userId}_$homeId';
+        await _firestore
+            .collection(AppConstants.colHomeMembers)
+            .doc(memberDocId)
+            .set({
+              'id': memberDocId,
+              'homeId': homeId,
+              'userId': userId,
+              'role': 'owner',
+            });
+        // --- KẾT THÚC: Tạo nhà mặc định ---
       }
     } on FirebaseAuthException catch (e) {
       throw e.message ?? "Lỗi đăng ký không xác định";

@@ -103,44 +103,43 @@ class DashboardScreen extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               children: [
                 // Header nhà hiện tại
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppConstants.primaryColor,
-                        AppConstants.primaryColor.withOpacity(0.7),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.home, color: Colors.white, size: 32),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              homeProvider.selectedHome!.name,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              '${gateways.length} Gateway • ${nodes.length} Đèn',
-                              style: const TextStyle(color: Colors.white70),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
+                // Container(
+                //   padding: const EdgeInsets.all(16),
+                //   decoration: BoxDecoration(
+                //     gradient: LinearGradient(
+                //       colors: [
+                //         AppConstants.primaryColor,
+                //         AppConstants.primaryColor.withOpacity(0.7),
+                //       ],
+                //     ),
+                //     borderRadius: BorderRadius.circular(12),
+                //   ),
+                //   child: Row(
+                //     children: [
+                //       const Icon(Icons.home, color: Colors.white, size: 32),
+                //       const SizedBox(width: 12),
+                //       Expanded(
+                //         child: Column(
+                //           crossAxisAlignment: CrossAxisAlignment.start,
+                //           children: [
+                //             Text(
+                //               homeProvider.selectedHome!.name,
+                //               style: const TextStyle(
+                //                 color: Colors.white,
+                //                 fontSize: 18,
+                //                 fontWeight: FontWeight.bold,
+                //               ),
+                //             ),
+                //             Text(
+                //               '${gateways.length} Gateway • ${nodes.length} Đèn',
+                //               style: const TextStyle(color: Colors.white70),
+                //             ),
+                //           ],
+                //         ),
+                //       ),
+                //     ],
+                //   ),
+                // ),
                 const SizedBox(height: 24),
 
                 // Section Gateways

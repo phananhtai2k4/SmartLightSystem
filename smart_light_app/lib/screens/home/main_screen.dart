@@ -14,11 +14,11 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 1; // Mặc định là tab Rooms (ở giữa)
+  int _currentIndex = 0; // Mặc định là tab Rooms (ở giữa)
 
   final List<Widget> _screens = const [
     DashboardScreen(),
-    RoomsScreen(),
+    // RoomsScreen(),
     ProfileScreen(),
   ];
 
@@ -57,11 +57,11 @@ class _MainScreenState extends State<MainScreen> {
               activeIcon: Icon(Icons.dashboard_rounded),
               label: 'Thiết bị',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Phòng',
-            ),
+            // BottomNavigationBarItem(
+            //   icon: Icon(Icons.home_outlined),
+            //   activeIcon: Icon(Icons.home),
+            //   label: 'Phòng',
+            // ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
