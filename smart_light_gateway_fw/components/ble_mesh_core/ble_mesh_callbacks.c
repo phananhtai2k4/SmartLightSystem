@@ -240,13 +240,13 @@ void ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
         ESP_LOGI(TAG, "ESP_BLE_MESH_MODEL_OPERATION_EVT");
         // Kiểm tra model ID để gọi đúng parser
         if (param->model_operation.model->vnd.model_id == MESH_VND_MODEL_ID_CONTROL_SERVER) {
-            ESP_LOGI(TAG, "Control Server Model ID: 0x%04x", param->model_operation.model->vnd.model_id);
-            ESP_LOGI(TAG, "Received opcode: 0x%06" PRIx32, param->model_operation.opcode);
-            // parse_control_payload(param->model_operation.model,
-            //                       param->model_operation.ctx,
-            //                       param->model_operation.msg,
-            //                       param->model_operation.length);
-            ESP_LOG_BUFFER_HEX("Vendor Publish Msg", param->model_operation.msg, param->model_operation.length);
+            // ESP_LOGI(TAG, "Control Server Model ID: 0x%04x", param->model_operation.model->vnd.model_id);
+            // ESP_LOGI(TAG, "Received opcode: 0x%06" PRIx32, param->model_operation.opcode);
+            // // parse_control_payload(param->model_operation.model,
+            // //                       param->model_operation.ctx,
+            // //                       param->model_operation.msg,
+            // //                       param->model_operation.length);
+            // ESP_LOG_BUFFER_HEX("Vendor Publish Msg", param->model_operation.msg, param->model_operation.length);
             app_event_t app_event = { .type = EVENT_MESH_VENDOR_PUBLISH_RECEIVED };
             app_event.data.publish_status.address = param->model_operation.ctx->addr;
             app_event.data.publish_status.length = param->model_operation.length;
@@ -266,8 +266,8 @@ void ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
         ESP_LOGI(TAG, "Vendor Publish Complete");
         break; 
     case ESP_BLE_MESH_CLIENT_MODEL_RECV_PUBLISH_MSG_EVT:
-        ESP_LOGI(TAG, "Vendor Client Received Publish Message, opcode 0x%06" PRIx32, param->client_recv_publish_msg.opcode);
-        ESP_LOG_BUFFER_HEX("Vendor Publish Msg", param->client_recv_publish_msg.msg, param->client_recv_publish_msg.length);
+        // ESP_LOGI(TAG, "Vendor Client Received Publish Message, opcode 0x%06" PRIx32, param->client_recv_publish_msg.opcode);
+        // ESP_LOG_BUFFER_HEX("Vendor Publish Msg", param->client_recv_publish_msg.msg, param->client_recv_publish_msg.length);
         app_event_t app_event = { .type = EVENT_MESH_VENDOR_PUBLISH_RECEIVED };
         app_event.data.publish_status.address = param->client_recv_publish_msg.ctx->addr;
         app_event.data.publish_status.length = param->client_recv_publish_msg.length;

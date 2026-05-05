@@ -267,11 +267,6 @@ void send_alert_node_online_response(uint16_t address, bool online, cmd_type_t t
 }
 
 void send_alert_history_response(history_type_t history_type, uint8_t onoff, uint16_t address, cmd_type_t type){
-    static uint8_t last_onoff = 404;
-    if (last_onoff == onoff) {
-        return;
-    }
-    last_onoff = onoff;
     cJSON *response = cJSON_CreateObject();
     cJSON_AddStringToObject(response, "name", "CmdAlertHistory");
     cJSON_AddStringToObject(response, "devT", CONFIG_DEVICE_TYPE);
@@ -287,6 +282,29 @@ void send_alert_history_response(history_type_t history_type, uint8_t onoff, uin
     char *response_str = cJSON_PrintUnformatted(response);
     if (response_str) {
         ESP_LOGI(TAG, "Sending alert history response: %s", response_str);
+        send_response(response_str, type);
+        cJSON_free(response_str);
+    }
+    cJSON_Delete(response);
+}
+
+void send_alert_data_response(uint16_t light_lux, uint16_t current_ma, uint16_t address, cmd_type_t type){
+    cJSON *response = cJSON_CreateObject();
+    cJSON_AddStringToObject(response, "name", "CmdAlertData");
+    cJSON_AddStringToObject(response, "devT", CONFIG_DEVICE_TYPE);
+    cJSON_AddStringToObject(response, "devExtAddr", device_get_mac_str());
+    time_t now = time_manager_get_timestamp();
+    cJSON_AddNumberToObject(response, "timestamp", now);
+    cJSON_AddNumberToObject(response, "address", address);
+    if (light_lux != 404) {
+        cJSON_AddNumberToObject(response, "light_lux", light_lux);
+    }
+    if (current_ma != 404) {
+        cJSON_AddNumberToObject(response, "current_ma", current_ma);
+    }
+    char *response_str = cJSON_PrintUnformatted(response);
+    if (response_str) {
+        ESP_LOGI(TAG, "Sending alert data response: %s", response_str);
         send_response(response_str, type);
         cJSON_free(response_str);
     }

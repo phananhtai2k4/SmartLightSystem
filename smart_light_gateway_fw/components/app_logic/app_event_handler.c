@@ -79,7 +79,7 @@ void handle_recv_publish_status(uint8_t *data, uint16_t len, uint16_t address)
     //          status.onoff, status.light_lux, status.current_ma);
     get_status_response(address, status, CMD_TYPE_MQTT);
     if (status.onoff != 404) {
-        send_alert_history_response(HISTORY_TYPE_ONOFF, status.onoff, address, CMD_TYPE_ALERT);
+        send_alert_data_response(status.light_lux, status.current_ma, address, CMD_TYPE_ALERT);
     }
 }
 
