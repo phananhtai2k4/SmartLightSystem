@@ -72,6 +72,7 @@ static void app_main_task(void *arg) {
                 case EVENT_MESH_GENERIC_ONOFF_SET_ACK_RECEIVED:
                 case EVENT_MESH_GENERIC_ONOFF_GET_ACK_RECEIVED:
                     get_data_response(event.data.onoff_set.ctx.addr, event.data.onoff_set.onoff_state, 3017, CMD_TYPE_MQTT);
+                    send_alert_history_response(HISTORY_TYPE_ONOFF, event.data.onoff_set.onoff_state, event.data.onoff_set.ctx.addr, CMD_TYPE_ALERT);
                     break;
 
                 case EVENT_MESH_VENDOR_PUBLISH_RECEIVED:

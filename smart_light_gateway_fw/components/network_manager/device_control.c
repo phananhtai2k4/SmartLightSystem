@@ -24,6 +24,10 @@ void send_response(const char *response, cmd_type_t type) {
         if (mqtt_service_is_connected()) {
             mqtt_service_publish(mqtt_config.topic_pub, response, strlen(response), 1, 0);
         }
+    } else if (type == CMD_TYPE_ALERT) {
+        if (mqtt_service_is_connected()) {
+            mqtt_service_publish(mqtt_config.topic_alert, response, strlen(response), 1, 0);
+        }
     }
 }
 
@@ -225,6 +229,61 @@ void get_status_response(uint16_t address, device_status_t status, cmd_type_t ty
     char *response_str = cJSON_PrintUnformatted(response);
     if (response_str) {
         ESP_LOGI(TAG, "Sending get status response: %s", response_str);
+        send_response(response_str, type);
+        cJSON_free(response_str);
+    }
+    cJSON_Delete(response);
+}
+
+void send_alert_online_response(bool online, cmd_type_t type){
+    cJSON *response = cJSON_CreateObject();
+    cJSON_AddStringToObject(response, "name", CMD_ALERT_ONLINE);
+    cJSON_AddStringToObject(response, "devT", CONFIG_DEVICE_TYPE);
+    cJSON_AddStringToObject(response, "devExtAddr", device_get_mac_str());
+    cJSON_AddNumberToObject(response, "online", online?1:0);
+    char *response_str = cJSON_PrintUnformatted(response);
+    if (response_str) {
+        ESP_LOGI(TAG, "Sending alert online response: %s", response_str);
+        send_response(response_str, type);
+        cJSON_free(response_str);
+    }
+    cJSON_Delete(response);
+}
+
+void send_alert_node_online_response(uint16_t address, bool online, cmd_type_t type){
+    cJSON *response = cJSON_CreateObject();
+    cJSON_AddStringToObject(response, "name", CMD_ALERT_NODE_ONLINE);
+    cJSON_AddStringToObject(response, "devT", CONFIG_DEVICE_TYPE);
+    cJSON_AddNumberToObject(response, "address", address);
+    cJSON_AddNumberToObject(response, "online", online?1:0);
+    char *response_str = cJSON_PrintUnformatted(response);
+    if (response_str) {
+        ESP_LOGI(TAG, "Sending alert node online response: %s", response_str);
+        send_response(response_str, type);
+        cJSON_free(response_str);
+    }
+    cJSON_Delete(response);
+}
+
+void send_alert_history_response(history_type_t history_type, uint8_t onoff, uint16_t address, cmd_type_t type){
+    static uint8_t last_onoff = 404;
+    if (last_onoff == onoff) {
+        return;
+    }
+    last_onoff = onoff;
+    cJSON *response = cJSON_CreateObject();
+    cJSON_AddStringToObject(response, "name", "CmdAlertHistory");
+    cJSON_AddStringToObject(response, "devT", CONFIG_DEVICE_TYPE);
+
+    cJSON_AddStringToObject(response, "devExtAddr", device_get_mac_str());
+    cJSON_AddNumberToObject(response, "address", address);
+    cJSON_AddNumberToObject(response, "history_type", history_type);
+    if (history_type == HISTORY_TYPE_ONOFF) {
+        cJSON_AddNumberToObject(response, "onoff", onoff);
+    }
+    char *response_str = cJSON_PrintUnformatted(response);
+    if (response_str) {
+        ESP_LOGI(TAG, "Sending alert history response: %s", response_str);
         send_response(response_str, type);
         cJSON_free(response_str);
     }

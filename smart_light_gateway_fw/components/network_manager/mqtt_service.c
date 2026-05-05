@@ -10,6 +10,7 @@
 #include "cJSON.h"
 #include "device_identity.h"
 #include "ble_mesh_core.h"
+#include "cJSON.h"
 
 static const char *TAG = "MQTT_SERVICE";
 mqtt_config_t mqtt_config;
@@ -67,7 +68,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                 cJSON_free(response_str);
             }
             cJSON_Delete(response);
-            cJSON *alert = cJSON_CreateObject();
+            send_alert_online_response(true, CMD_TYPE_ALERT);
             break;
         case MQTT_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
@@ -132,10 +133,16 @@ esp_err_t mqtt_service_init_and_start() {
     // nvs_storage_write_mqtt_config(&mqtt_config);
     ESP_LOGI(TAG, "Initializing MQTT Service...");
     nvs_storage_read_mqtt_config(&mqtt_config);
+    cJSON *response = cJSON_CreateObject();
+    cJSON_AddStringToObject(response, "name", CMD_ALERT_ONLINE);
+    cJSON_AddStringToObject(response, "devT", CONFIG_DEVICE_TYPE);
+    cJSON_AddStringToObject(response, "devExtAddr", device_get_mac_str());
+    cJSON_AddNumberToObject(response, "online", 0);
+    char *response_str = cJSON_PrintUnformatted(response);
     const esp_mqtt_client_config_t mqtt_cfg = {
         .session.last_will.topic = mqtt_config.topic_alert,
-        .session.last_will.msg = "offline",
-        .session.last_will.msg_len = strlen("offline"),
+        .session.last_will.msg = response_str,
+        .session.last_will.msg_len = strlen(response_str),
         .session.last_will.qos = 1,
         .session.last_will.retain = true,
         .broker.address.uri = mqtt_config.broker_url,

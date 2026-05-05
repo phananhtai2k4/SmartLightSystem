@@ -214,7 +214,11 @@ void ble_mesh_generic_client_cb(esp_ble_mesh_generic_client_cb_event_t event,
         break;
     case ESP_BLE_MESH_GENERIC_CLIENT_PUBLISH_EVT:
          ESP_LOGI(TAG, "Client publish event: published from 0x%04x, state is %s" PRIx32,param->params->ctx.addr, param->status_cb.onoff_status.present_onoff ? "ON" : "OFF");
-        break;
+         app_event_t app_event = { .type = EVENT_MESH_GENERIC_ONOFF_SET_ACK_RECEIVED };
+            app_event.data.onoff_set.ctx = param->params->ctx;
+            app_event.data.onoff_set.onoff_state = param->status_cb.onoff_status.present_onoff;
+            sys_event_queue_send(&app_event);
+            break;
     default:
         ESP_LOGW(TAG, "Unknown Generic Client event: 0x%02x", event);
         break;
@@ -263,7 +267,6 @@ void ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
         break; 
     case ESP_BLE_MESH_CLIENT_MODEL_RECV_PUBLISH_MSG_EVT:
         ESP_LOGI(TAG, "Vendor Client Received Publish Message, opcode 0x%06" PRIx32, param->client_recv_publish_msg.opcode);
-        //in ra nội dung message nhận được
         ESP_LOG_BUFFER_HEX("Vendor Publish Msg", param->client_recv_publish_msg.msg, param->client_recv_publish_msg.length);
         app_event_t app_event = { .type = EVENT_MESH_VENDOR_PUBLISH_RECEIVED };
         app_event.data.publish_status.address = param->client_recv_publish_msg.ctx->addr;
