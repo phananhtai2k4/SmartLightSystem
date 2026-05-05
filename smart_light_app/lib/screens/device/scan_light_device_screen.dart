@@ -41,6 +41,16 @@ class _ScanLightDeviceScreenState extends State<ScanLightDeviceScreen> {
       _devices.clear();
     });
 
+    // Request permissions before starting scan
+    final hasPermission = await _meshService.requestPermissions();
+    if (!hasPermission) {
+      setState(() {
+        _isScanning = false;
+        _errorMessage = 'Cần cấp quyền Bluetooth để tiếp tục. Vui lòng cấp quyền và thử lại.';
+      });
+      return;
+    }
+
     // Đăng ký listener TRƯỚC khi bắt đầu scan để không bỏ lỡ events
     _scanSubscription?.cancel();
     _scanSubscription = _meshService.scanEvents.listen((event) {

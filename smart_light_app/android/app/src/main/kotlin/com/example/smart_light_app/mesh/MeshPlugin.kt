@@ -129,6 +129,7 @@ class MeshPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
         Log.d(TAG, "onMethodCall: ${call.method}")
         
         when (call.method) {
+            "hasPermissions" -> hasPermissions(result)
             "requestPermissions" -> requestPermissions(result)
             "isBluetoothEnabled" -> isBluetoothEnabled(result)
             "startScan" -> startScan(result)
@@ -165,6 +166,31 @@ class MeshPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
         return false
     }
     
+    private fun hasPermissions(result: MethodChannel.Result) {
+        val ctx = context ?: run {
+            result.error("NO_CONTEXT", "Context is null", null)
+            return
+        }
+        
+        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(
+                Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_CONNECT
+            )
+        } else {
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        }
+        
+        val allGranted = permissions.all {
+            ContextCompat.checkSelfPermission(ctx, it) == PackageManager.PERMISSION_GRANTED
+        }
+        
+        result.success(allGranted)
+    }
+
     private fun requestPermissions(result: MethodChannel.Result) {
         val ctx = context ?: run {
             result.error("NO_CONTEXT", "Context is null", null)
@@ -178,12 +204,12 @@ class MeshPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
         val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             arrayOf(
                 Manifest.permission.BLUETOOTH_SCAN,
-                Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.ACCESS_FINE_LOCATION
+                Manifest.permission.BLUETOOTH_CONNECT
             )
         } else {
             arrayOf(
-                Manifest.permission.ACCESS_FINE_LOCATION
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
             )
         }
         
@@ -211,6 +237,13 @@ class MeshPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
         val ctx = context ?: run {
             result.error("NO_CONTEXT", "Context is null", null)
             return
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+                result.error("NO_PERMISSION", "BLUETOOTH_SCAN permission is required", null)
+                return
+            }
         }
         
         if (bleScanner == null) {
