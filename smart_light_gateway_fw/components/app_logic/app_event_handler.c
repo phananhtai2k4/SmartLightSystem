@@ -6,12 +6,17 @@
 #include "app_event_handler.h"
 #include "sys_nvs.h"
 #include "device_control.h"
-
+#include "time_manager.h"
 #include "mqtt_service.h"
 
 static const char *TAG = "APP_EVENT_HANDLER";
 
 void handle_network_connected(void) {
+    esp_err_t ret = time_manager_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize time manager");
+        return;
+    }
     mqtt_service_init_and_start();
 }
 

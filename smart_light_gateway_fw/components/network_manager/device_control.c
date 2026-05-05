@@ -13,6 +13,7 @@
 #include "udp_service.h"
 #include "wifi_manager.h"
 #include "ble_mesh_core.h"
+#include "time_manager.h"
 
 static const char *TAG = "DEVICE_CONTROL";
 
@@ -276,6 +277,8 @@ void send_alert_history_response(history_type_t history_type, uint8_t onoff, uin
     cJSON_AddStringToObject(response, "devT", CONFIG_DEVICE_TYPE);
 
     cJSON_AddStringToObject(response, "devExtAddr", device_get_mac_str());
+    time_t now = time_manager_get_timestamp();
+    cJSON_AddNumberToObject(response, "timestamp", now);
     cJSON_AddNumberToObject(response, "address", address);
     cJSON_AddNumberToObject(response, "history_type", history_type);
     if (history_type == HISTORY_TYPE_ONOFF) {
