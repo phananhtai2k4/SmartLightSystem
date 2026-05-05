@@ -18,4 +18,5 @@ void handle_network_connected(void);
 void handle_network_disconnected(void);
 
 void handle_onoff_set_event(const event_data_onoff_set_t *onoff_data);
+void handle_recv_publish_status(uint8_t *data, uint16_t len, uint16_t address);
 #endif // APP_EVENT_HANDLER_H

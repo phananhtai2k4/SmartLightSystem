@@ -48,6 +48,7 @@ static void app_main_task(void *arg) {
 
                 case EVENT_MESH_PROV_COMPLETE:
                     ESP_LOGI(TAG, "Sự kiện: Provisioning hoàn tất.");
+                    ble_mesh_composition_setup_defaults();
                     if (!(boot_flag == BOOT_FLAG_ADDING_GATEWAY_MANUAL)) {
                         // vTaskDelay(pdMS_TO_TICKS(9000));
                         // wifi_manager_connect_start("Cam-hub","0913456789");
@@ -71,6 +72,10 @@ static void app_main_task(void *arg) {
                 case EVENT_MESH_GENERIC_ONOFF_SET_ACK_RECEIVED:
                 case EVENT_MESH_GENERIC_ONOFF_GET_ACK_RECEIVED:
                     get_data_response(event.data.onoff_set.ctx.addr, event.data.onoff_set.onoff_state, 3017, CMD_TYPE_MQTT);
+                    break;
+
+                case EVENT_MESH_VENDOR_PUBLISH_RECEIVED:
+                    handle_recv_publish_status(event.data.publish_status.msg, event.data.publish_status.length, event.data.publish_status.address);
                     break;
 
                 // Button events

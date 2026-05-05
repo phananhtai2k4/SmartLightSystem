@@ -209,12 +209,14 @@ void ble_mesh_generic_client_cb(esp_ble_mesh_generic_client_cb_event_t event,
                 sys_event_queue_send(&app_event);
         }
         break;
-    case ESP_BLE_MESH_GENERIC_CLIENT_PUBLISH_EVT:
-        break;
     case ESP_BLE_MESH_GENERIC_CLIENT_TIMEOUT_EVT:
         ESP_LOGW(TAG, "Client timeout: message to 0x%04x failed", param->params->ctx.addr);
         break;
+    case ESP_BLE_MESH_GENERIC_CLIENT_PUBLISH_EVT:
+         ESP_LOGI(TAG, "Client publish event: published from 0x%04x, state is %s" PRIx32,param->params->ctx.addr, param->status_cb.onoff_status.present_onoff ? "ON" : "OFF");
+        break;
     default:
+        ESP_LOGW(TAG, "Unknown Generic Client event: 0x%02x", event);
         break;
     }
 }
@@ -228,6 +230,7 @@ void ble_mesh_generic_client_cb(esp_ble_mesh_generic_client_cb_event_t event,
 void ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
                               esp_ble_mesh_model_cb_param_t *param)
 {
+    ESP_LOGI(TAG, "Custom Model event %u", event);
     switch (event) {
     case ESP_BLE_MESH_MODEL_OPERATION_EVT: {
         ESP_LOGI(TAG, "ESP_BLE_MESH_MODEL_OPERATION_EVT");
@@ -239,6 +242,12 @@ void ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
             //                       param->model_operation.ctx,
             //                       param->model_operation.msg,
             //                       param->model_operation.length);
+            ESP_LOG_BUFFER_HEX("Vendor Publish Msg", param->model_operation.msg, param->model_operation.length);
+            app_event_t app_event = { .type = EVENT_MESH_VENDOR_PUBLISH_RECEIVED };
+            app_event.data.publish_status.address = param->model_operation.ctx->addr;
+            app_event.data.publish_status.length = param->model_operation.length;
+            memcpy(app_event.data.publish_status.msg, param->model_operation.msg, param->model_operation.length);
+            sys_event_queue_send(&app_event);
         } else {
             ESP_LOGW(TAG, "Unknown Vendor Model ID: 0x%04x",
                      param->model_operation.model->vnd.model_id);
@@ -252,6 +261,16 @@ void ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
     case ESP_BLE_MESH_MODEL_PUBLISH_COMP_EVT:
         ESP_LOGI(TAG, "Vendor Publish Complete");
         break; 
+    case ESP_BLE_MESH_CLIENT_MODEL_RECV_PUBLISH_MSG_EVT:
+        ESP_LOGI(TAG, "Vendor Client Received Publish Message, opcode 0x%06" PRIx32, param->client_recv_publish_msg.opcode);
+        //in ra nội dung message nhận được
+        ESP_LOG_BUFFER_HEX("Vendor Publish Msg", param->client_recv_publish_msg.msg, param->client_recv_publish_msg.length);
+        app_event_t app_event = { .type = EVENT_MESH_VENDOR_PUBLISH_RECEIVED };
+        app_event.data.publish_status.address = param->client_recv_publish_msg.ctx->addr;
+        app_event.data.publish_status.length = param->client_recv_publish_msg.length;
+        memcpy(app_event.data.publish_status.msg, param->client_recv_publish_msg.msg, param->client_recv_publish_msg.length);
+        sys_event_queue_send(&app_event);
+        break;
     default:
         ESP_LOGW(TAG, "Unknown Custom Model event: 0x%02x", event);
         break;

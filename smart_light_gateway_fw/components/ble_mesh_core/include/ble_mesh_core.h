@@ -37,11 +37,16 @@ extern void ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event, esp_bl
 #define MESH_VND_OP_SSW_GET_DATA          ESP_BLE_MESH_MODEL_OP_3(0x11, CID_CONTROL)
 #define MESH_VND_OP_SSW_GET_DATA_STATUS   ESP_BLE_MESH_MODEL_OP_3(0x12, CID_CONTROL)
 // Cấu trúc dữ liệu tùy chỉnh cho payload
-typedef struct __attribute__((packed)) {
-    uint8_t state_led_1; // 0 = OFF, 1 = ON
-    uint8_t state_led_2;
-    uint8_t state_led_3;
-} mesh_vnd_led_states_t;
+#define BLEMESH_TOPIC_CONTROL_SERVER_PUB	0xF003
+#define TLV_ONOFF        0x01
+#define TLV_LIGHT_LUX    0x02
+#define TLV_CURRENT_MA   0x03
+
+typedef struct {
+    uint8_t onoff;          // 1 byte
+    uint16_t light_lux;     // 2 bytes (0–65535 lux)
+    uint16_t current_ma;    // 2 bytes (mA)
+} device_status_t;
 
 /**
  * @brief Khởi tạo toàn bộ stack và các thành phần của BLE Mesh.
@@ -95,6 +100,7 @@ esp_err_t ble_mesh_core_node_local_reset(void);
 esp_err_t ble_mesh_core_node_prov_enable(void);
 esp_err_t ble_mesh_core_node_prov_enable_adding_gw(void);
 void auto_rebind_on_startup(void);
-esp_err_t self_bind_vendor_model(uint16_t element_addr, uint16_t app_idx, 
-                                        uint16_t model_id, uint16_t company_id);
+esp_err_t self_bind_vendor_model(uint16_t element_addr, uint16_t app_idx, uint16_t model_id, uint16_t company_id);
+esp_ble_mesh_model_t *ble_mesh_core_find_vendor_model(const esp_ble_mesh_elem_t *element, uint16_t company_id, uint16_t model_id);
+void ble_mesh_composition_setup_defaults(void);
 #endif // __BLE_MESH_CORE_H__

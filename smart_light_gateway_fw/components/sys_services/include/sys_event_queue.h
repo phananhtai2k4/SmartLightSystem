@@ -19,6 +19,7 @@ typedef enum {
     EVENT_MESH_GENERIC_ONOFF_SET_RECEIVED,
     EVENT_MESH_GENERIC_ONOFF_SET_ACK_RECEIVED,
     EVENT_MESH_GENERIC_ONOFF_GET_ACK_RECEIVED,
+    EVENT_MESH_VENDOR_PUBLISH_RECEIVED,
     EVENT_BUTTON_PRESSED,
     EVENT_BUTTON_RELEASED,
     EVENT_BUTTON_HOLD_3S,
@@ -30,11 +31,18 @@ typedef struct {
     esp_ble_mesh_msg_ctx_t ctx;     // Context của tin nhắn (địa chỉ nguồn, đích, etc.)
     uint8_t onoff_state;            // Trạng thái On/Off được yêu cầu
 } event_data_onoff_set_t;
+#define MAX_RAW_PAYLOAD_SIZE 64
+typedef struct {
+    uint16_t address;               /*!< Address of the device that sent the message */
+    uint16_t length;                /*!< Length of the received message */
+    uint8_t msg[MAX_RAW_PAYLOAD_SIZE]; 
+} event_recv_publish_msg_t;
 
 typedef struct {
     app_event_type_t type;
     union {
         event_data_onoff_set_t      onoff_set;
+        event_recv_publish_msg_t      publish_status;
     } data;
 } app_event_t;
 

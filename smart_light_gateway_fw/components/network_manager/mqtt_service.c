@@ -67,6 +67,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                 cJSON_free(response_str);
             }
             cJSON_Delete(response);
+            cJSON *alert = cJSON_CreateObject();
             break;
         case MQTT_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
@@ -132,7 +133,7 @@ esp_err_t mqtt_service_init_and_start() {
     ESP_LOGI(TAG, "Initializing MQTT Service...");
     nvs_storage_read_mqtt_config(&mqtt_config);
     const esp_mqtt_client_config_t mqtt_cfg = {
-        .session.last_will.topic = "/devices/esp32_device_01/status",
+        .session.last_will.topic = mqtt_config.topic_alert,
         .session.last_will.msg = "offline",
         .session.last_will.msg_len = strlen("offline"),
         .session.last_will.qos = 1,

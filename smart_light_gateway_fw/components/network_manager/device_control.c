@@ -207,6 +207,30 @@ static int handle_get_data(cJSON *value, cmd_type_t type) {
     return 0;
 }
 
+void get_status_response(uint16_t address, device_status_t status, cmd_type_t type) {
+    cJSON *response = cJSON_CreateObject();
+    cJSON_AddStringToObject(response, "name", CMD_GET_STATUS);
+    cJSON_AddNumberToObject(response, "devT", 3017);
+    cJSON_AddNumberToObject(response, "address", address);
+    // cJSON_AddNumberToObject(response, "state", status.onoff);
+    if (&status.onoff != 404) {
+        cJSON_AddNumberToObject(response, "onoff", status.onoff);
+    }
+    if (status.light_lux != 404) {
+        cJSON_AddNumberToObject(response, "light_lux", status.light_lux);
+    }
+    if (status.current_ma != 404) {
+        cJSON_AddNumberToObject(response, "current_ma", status.current_ma);
+    }
+    char *response_str = cJSON_PrintUnformatted(response);
+    if (response_str) {
+        ESP_LOGI(TAG, "Sending get status response: %s", response_str);
+        send_response(response_str, type);
+        cJSON_free(response_str);
+    }
+    cJSON_Delete(response);
+}
+
 int device_control_cmd_handle(const char* msg, cmd_type_t msgType) {
     ESP_LOGI(TAG, "MSG: %s", msg);
     int ret = -1;
