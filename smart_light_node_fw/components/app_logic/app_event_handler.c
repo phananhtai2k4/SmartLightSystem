@@ -64,7 +64,7 @@ void app_event_handler(const app_event_t *event)
         ESP_LOGI(TAG, "Sự kiện: Hệ thống khởi động.");
         // Khi khởi động, đọc trạng thái đã lưu từ NVS
         if (sys_nvs_load_device_status(&saved_status) == ESP_OK) {
-            ESP_LOGI(TAG, "Đã tìm thấy trạng thái đã lưu, khôi phục onoff = %d, lux=%.2f, current=%.4fmA", saved_status.onoff, saved_status.light_lux, saved_status.current_ma);
+            ESP_LOGI(TAG, "Đã tìm thấy trạng thái đã lưu, khôi phục onoff = %d, lux=%d, current=%dmA", saved_status.onoff, saved_status.light_lux, saved_status.current_ma);
             onoff_server.state.onoff = saved_status.onoff;
             board_led_set_state(RELAY_STATE_LED, saved_status.onoff ? LED_STATE_ON : LED_STATE_OFF);
         } else {
@@ -77,6 +77,7 @@ void app_event_handler(const app_event_t *event)
     case EVENT_MESH_PROV_COMPLETE:
         ESP_LOGI(TAG, "Sự kiện: Provisioning hoàn tất.");
         boot_flags_write(BOOT_FLAG_ADDED_DEVICE);
+        ble_mesh_composition_setup_defaults();
         break;
         
     case EVENT_MESH_GENERIC_ONOFF_SET_RECEIVED:
@@ -106,7 +107,7 @@ void app_event_handler(const app_event_t *event)
         break;
         
     default:
-        ESP_LOGD(TAG, "Sự kiện chưa được xử lý: %d", event->type);
+        ESP_LOGW(TAG, "Sự kiện chưa được xử lý: %d", event->type);
         break;
     }
 }

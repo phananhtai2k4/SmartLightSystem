@@ -149,8 +149,8 @@ void ble_mesh_config_server_cb(esp_ble_mesh_cfg_server_cb_event_t event,
         break;
         
     default:
-        // ESP_LOGD(TAG, "Config Server, recv_op 0x%04x", param->ctx.recv_op);
-        ESP_LOGD(TAG, "Config Server, recv_op(uint32_t) %lu", (unsigned long)param->ctx.recv_op);
+        // ESP_LOGW(TAG, "Config Server, recv_op 0x%04x", param->ctx.recv_op);
+        ESP_LOGW(TAG, "Config Server, recv_op(uint32_t) %lu", (unsigned long)param->ctx.recv_op);
         break;
     }
 }

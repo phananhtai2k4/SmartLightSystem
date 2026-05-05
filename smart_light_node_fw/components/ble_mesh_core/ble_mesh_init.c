@@ -268,3 +268,81 @@ esp_err_t ble_mesh_core_node_prov_enable(void)
     }
     return err;
 }
+
+static uint8_t encode_device_status(device_status_t *st, uint8_t *buf)
+{
+    uint8_t *p = buf;
+
+    // ON/OFF
+    *p++ = TLV_ONOFF;
+    *p++ = 1;
+    *p++ = st->onoff;
+
+    // LIGHT
+    *p++ = TLV_LIGHT_LUX;
+    *p++ = 2;
+    *p++ = st->light_lux & 0xFF;
+    *p++ = (st->light_lux >> 8) & 0xFF;
+
+    // CURRENT
+    *p++ = TLV_CURRENT_MA;
+    *p++ = 2;
+    *p++ = st->current_ma & 0xFF;
+    *p++ = (st->current_ma >> 8) & 0xFF;
+
+    return (p - buf); // length
+}
+
+static uint8_t encode_device_onoff(device_status_t *st, uint8_t *buf)
+{
+    uint8_t *p = buf;
+
+    *p++ = TLV_ONOFF;
+    *p++ = 1;
+    *p++ = st->onoff;
+
+    return (p - buf); // length
+}
+
+esp_err_t ble_mesh_core_send_vendor_response(const esp_ble_mesh_msg_ctx_t *ctx,
+                                             uint32_t opcode,
+                                             const uint8_t *payload,
+                                             uint16_t length)
+{
+    esp_err_t err;
+    
+    ESP_LOGI(TAG, "Đang gửi phản hồi vendor: opcode=0x%06" PRIx32 ", len=%d, đến addr=0x%04x",
+             opcode, length, ctx->addr);
+             
+    // In ra payload sẽ gửi đi để gỡ lỗi
+    ESP_LOG_BUFFER_HEX(TAG, payload, length);
+    err = esp_ble_mesh_server_model_send_msg(&vnd_models_root[1],
+                                           (esp_ble_mesh_msg_ctx_t *)ctx,
+                                           opcode,
+                                           length,
+                                           (uint8_t *)payload);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Gửi phản hồi vendor thất bại (err %d)", err);
+    }
+
+    return err;
+}
+
+esp_err_t ble_mesh_core_handle_ssw_get_data(const esp_ble_mesh_msg_ctx_t *ctx)
+{
+    uint8_t payload[20];
+    uint8_t payload_len = encode_device_status(&saved_status, payload);
+
+    //Gửi phản hồi với opcode SSW Get Data Status
+    return ble_mesh_core_send_vendor_response(ctx, MESH_VND_OP_SSW_GET_DATA_STATUS, payload, payload_len);
+}
+
+//hàm chủ động publish trạng thái hiện tại của thiết bị dựa vào hàm esp_ble_mesh_model_publish(esp_ble_mesh_model_t *model, uint32_t opcode, uint16_t length, uint8_t *data, esp_ble_mesh_dev_role_t device_role)
+esp_err_t ble_mesh_core_publish_current_status(void)
+{
+    uint8_t payload[20];
+    uint8_t payload_len = encode_device_status(&saved_status, payload);
+
+    // Publish tin nhắn trạng thái với opcode SSW Get Data Status
+    return esp_ble_mesh_model_publish(&vnd_models_root[0], MESH_VND_OP_SSW_GET_DATA_STATUS, payload_len, payload, ROLE_NODE);
+}

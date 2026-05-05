@@ -37,10 +37,10 @@ static void app_main_task(void *arg)
         // Tác vụ sẽ bị block (ngủ) ở đây cho đến khi có sự kiện mới,
         // không tốn CPU.
         if (sys_event_queue_receive(&event, portMAX_DELAY)) {
-            ESP_LOGD(TAG, "Đã nhận được sự kiện, type = %d. Bắt đầu xử lý...", event.type);
+            // ESP_LOGI(TAG, "Đã nhận được sự kiện, type = %d. Bắt đầu xử lý...", event.type);
             // Chuyển sự kiện đến bộ xử lý
             app_event_handler(&event);
-            ESP_LOGD(TAG, "Xử lý sự kiện hoàn tất.");
+            // ESP_LOGI(TAG, "Xử lý sự kiện hoàn tất.");
         }
     }
 }

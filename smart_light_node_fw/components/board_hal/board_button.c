@@ -4,6 +4,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "sys_event_queue.h"
+#include "sys_nvs.h"
+#include <math.h>
+#include "ble_mesh_core.h"
 
 static const char *TAG = "BUTTON";
 
@@ -113,6 +116,26 @@ static void button_process(void)
     button_state_change(button_state_cur, button_repeat);
 }
 
+static void send_current_status_process(void)
+{
+    // Gửi trạng thái hiện tại lên mạng mỗi 30 giây
+    static uint32_t counter = 0;
+    
+    static uint8_t last_sent_onoff = 0;
+    static uint16_t last_sent_lux = 0;
+    static uint16_t last_sent_current = 0;
+    counter++;
+    
+    if (counter >= 200 || ((abs(saved_status.light_lux - last_sent_lux) > 20 || abs(saved_status.current_ma - last_sent_current) > 20) && counter >= 200)) {
+        ESP_LOGI(TAG, "Gửi trạng thái hiện tại lên mạng (định kỳ)");
+        last_sent_onoff = saved_status.onoff;
+        last_sent_lux = saved_status.light_lux;
+        last_sent_current = saved_status.current_ma;
+        counter = 0;
+        ble_mesh_core_publish_current_status();
+    }
+}
+
 /**
  * @brief Task scan button
  */
@@ -123,6 +146,7 @@ static void task_button(void *parm)
     for (;;) {
         button_process();
         boot_flag_change_process();
+        send_current_status_process();
         vTaskDelay(pdMS_TO_TICKS(BUTTON_SCAN_PERIOD_MS));
     }
 }

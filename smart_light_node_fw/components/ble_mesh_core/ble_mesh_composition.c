@@ -10,6 +10,7 @@
 #include "esp_ble_mesh_config_model_api.h"
 #include "esp_ble_mesh_generic_model_api.h"
 #include "ble_mesh_core.h"
+#include "esp_ble_mesh_local_data_operation_api.h"
 
 // Định nghĩa Company ID (CID) của Espressif.
 // Bạn có thể đăng ký một CID riêng cho công ty của mình.
@@ -112,3 +113,24 @@ esp_ble_mesh_comp_t composition = {
     .element_count = ARRAY_SIZE(elements), // Số lượng element trong Node
     .elements = elements,               // Con trỏ tới mảng các element
 };
+
+void ble_mesh_composition_setup_defaults(void)
+{
+    uint16_t self_addr = esp_ble_mesh_get_primary_element_address();
+    esp_ble_mesh_model_t *control_model = ble_mesh_core_find_vendor_model(&elements[0], 
+                                                                          CID_ESP, 
+                                                                          MESH_VND_MODEL_ID_CONTROL_SERVER);
+    if (control_model == NULL || control_model->pub == NULL) {
+        ESP_LOGE(TAG, "Không tìm thấy Control Server Model hoặc cấu trúc pub của nó!");
+        return;
+    }
+    control_model->pub->publish_addr = BLEMESH_TOPIC_CONTROL_SERVER_PUB;
+    control_model->pub->app_idx = 0;
+    control_model->pub->ttl = 3;
+    control_model->pub->retransmit = ESP_BLE_MESH_PUBLISH_TRANSMIT(2, 20);
+    control_model->pub->period = 0;
+    root_models[1].pub->publish_addr = BLEMESH_TOPIC_CONTROL_SERVER_PUB;
+    // control_model->groups[0] = BLEMESH_TOPIC_CONTROL_SERVER_PUB;
+    // root_models[2].groups[0] = BLEMESH_TOPIC_CONTROL_SERVER_PUB;
+    ESP_LOGI(TAG, "Đã thiết lập địa chỉ publish mặc định cho Control Server là 0x%04X", control_model->pub->publish_addr);
+}

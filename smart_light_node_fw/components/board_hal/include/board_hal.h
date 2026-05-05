@@ -13,7 +13,8 @@
 #include "esp_log.h"
 #include "esp_err.h"
 
-#define BUTTON_GPIO     22
+// #define BUTTON_GPIO     22
+#define BUTTON_GPIO     0
 
 // Định nghĩa các chân GPIO cho mỗi đèn LED chức năng
 #define STATUS_LED_GPIO         GPIO_NUM_2
