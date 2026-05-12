@@ -341,8 +341,12 @@ esp_err_t ble_mesh_core_handle_ssw_get_data(const esp_ble_mesh_msg_ctx_t *ctx)
 esp_err_t ble_mesh_core_publish_current_status(void)
 {
     uint8_t payload[20];
+    //random dữ liệu để test
+    saved_status.current_ma = random() % 1000; // 0-999 mA
+    saved_status.light_lux = random() % 1000; // 0-999 lux
     uint8_t payload_len = encode_device_status(&saved_status, payload);
 
-    // Publish tin nhắn trạng thái với opcode SSW Get Data Status
+    ESP_LOGI(TAG, "Publishing current status: onoff=%d, lux=%d, current=%dmA",
+             saved_status.onoff, saved_status.light_lux, saved_status.current_ma);
     return esp_ble_mesh_model_publish(&vnd_models_root[0], MESH_VND_OP_SSW_GET_DATA_STATUS, payload_len, payload, ROLE_NODE);
 }

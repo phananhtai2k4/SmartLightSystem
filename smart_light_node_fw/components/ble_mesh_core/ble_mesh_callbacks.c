@@ -309,7 +309,7 @@ void ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
         break;
     
     case ESP_BLE_MESH_MODEL_PUBLISH_COMP_EVT:
-        ESP_LOGI(TAG, "Vendor Publish Complete");
+        // ESP_LOGI(TAG, "Vendor Publish Complete");
         break; 
     default:
         ESP_LOGW(TAG, "Unknown Custom Model event: 0x%02x", event);

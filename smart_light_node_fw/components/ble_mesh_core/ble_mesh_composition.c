@@ -127,7 +127,7 @@ void ble_mesh_composition_setup_defaults(void)
     control_model->pub->publish_addr = BLEMESH_TOPIC_CONTROL_SERVER_PUB;
     control_model->pub->app_idx = 0;
     control_model->pub->ttl = 3;
-    control_model->pub->retransmit = ESP_BLE_MESH_PUBLISH_TRANSMIT(2, 20);
+    // control_model->pub->retransmit = ESP_BLE_MESH_PUBLISH_TRANSMIT(2, 20);
     control_model->pub->period = 0;
     root_models[1].pub->publish_addr = BLEMESH_TOPIC_CONTROL_SERVER_PUB;
     // control_model->groups[0] = BLEMESH_TOPIC_CONTROL_SERVER_PUB;

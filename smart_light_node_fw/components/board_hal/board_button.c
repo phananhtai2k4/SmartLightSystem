@@ -126,8 +126,8 @@ static void send_current_status_process(void)
     static uint16_t last_sent_current = 0;
     counter++;
     
-    if (counter >= 200 || ((abs(saved_status.light_lux - last_sent_lux) > 20 || abs(saved_status.current_ma - last_sent_current) > 20) && counter >= 200)) {
-        ESP_LOGI(TAG, "Gửi trạng thái hiện tại lên mạng (định kỳ)");
+    // if (counter >= 1000 || ((abs(saved_status.light_lux - last_sent_lux) > 20 || abs(saved_status.current_ma - last_sent_current) > 20) && counter >= 200)) {
+    if (counter >= 1000) {
         last_sent_onoff = saved_status.onoff;
         last_sent_lux = saved_status.light_lux;
         last_sent_current = saved_status.current_ma;
