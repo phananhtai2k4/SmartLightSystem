@@ -23,7 +23,7 @@ typedef struct subscription_node {
 
 static esp_mqtt_client_handle_t client = NULL;
 static subscription_t *subscriptions_head = NULL;
-static bool is_connected = false;
+bool mqtt_connected = false;
 
 // Nhúng các file chứng chỉ
 extern const uint8_t server_cert_pem_start[] asm("_binary_hivemq_cloud_ca_crt_start");
@@ -32,7 +32,7 @@ extern const uint8_t server_cert_pem_end[]   asm("_binary_hivemq_cloud_ca_crt_en
 static SemaphoreHandle_t g_subscriptions_mutex = NULL;
 
 void resubscribe_all_topics() {
-    if (!is_connected) {
+    if (!mqtt_connected) {
         ESP_LOGW(TAG, "Cannot resubscribe, MQTT is not connected.");
         return;
     }
@@ -44,7 +44,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     esp_mqtt_event_handle_t event = event_data;
     switch ((esp_mqtt_event_id_t)event_id) {
         case MQTT_EVENT_CONNECTED:
-            is_connected = true;
+            mqtt_connected = true;
             nvs_storage_read_mqtt_config(&mqtt_config);
             ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED, broker URL: %s", mqtt_config.broker_url);
             // Đăng ký các topic trước đó đã lưu trong cấu hình
@@ -72,7 +72,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             break;
         case MQTT_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
-            is_connected = false;
+            mqtt_connected = false;
             break;
         case MQTT_EVENT_SUBSCRIBED:
             ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
@@ -205,7 +205,7 @@ esp_err_t mqtt_service_subscribe(const char *topic, mqtt_data_callback_t callbac
         return ESP_FAIL;
     }
 
-    if (is_connected) {
+    if (mqtt_connected) {
         esp_mqtt_client_subscribe(client, topic, qos);
     }
     ESP_LOGI(TAG, "Queued subscription for topic: %s", topic);
@@ -213,7 +213,7 @@ esp_err_t mqtt_service_subscribe(const char *topic, mqtt_data_callback_t callbac
 }
 
 int mqtt_service_publish(const char *topic, const char *data, int len, int qos, int retain) {
-    if (!is_connected) {
+    if (!mqtt_connected) {
         ESP_LOGE(TAG, "Cannot publish, MQTT not connected");
         return -1;
     }
@@ -231,7 +231,7 @@ esp_err_t mqtt_service_stop_and_deinit(void) {
     esp_mqtt_client_stop(client);
     esp_mqtt_client_destroy(client);
     client = NULL;
-    is_connected = false;
+    mqtt_connected = false;
 
     // Giải phóng bộ nhớ của danh sách subscriptions
     if (xSemaphoreTake(g_subscriptions_mutex, portMAX_DELAY) == pdTRUE) {
@@ -253,6 +253,6 @@ esp_err_t mqtt_service_stop_and_deinit(void) {
     return ESP_OK;
 }
 
-bool mqtt_service_is_connected(void) {
-    return is_connected;
+bool mqtt_service_mqtt_connected(void) {
+    return mqtt_connected;
 }

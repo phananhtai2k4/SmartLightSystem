@@ -17,6 +17,8 @@
 #include "udp_service.h"
 #include "board_button.h"
 #include "board_led.h"
+#include "mqtt_service.h"
+#include "device_control.h"
 
 static const char *TAG = "MAIN";
 

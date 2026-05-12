@@ -22,11 +22,11 @@ void send_response(const char *response, cmd_type_t type) {
     if (type == CMD_TYPE_UDP) {
         udp_service_send_broadcast1(response, strlen(response), 0);
     } else if (type == CMD_TYPE_MQTT) {
-        if (mqtt_service_is_connected()) {
+        if (mqtt_service_mqtt_connected()) {
             mqtt_service_publish(mqtt_config.topic_pub, response, strlen(response), 1, 0);
         }
     } else if (type == CMD_TYPE_ALERT) {
-        if (mqtt_service_is_connected()) {
+        if (mqtt_service_mqtt_connected()) {
             mqtt_service_publish(mqtt_config.topic_alert, response, strlen(response), 1, 0);
         }
     }
@@ -149,6 +149,27 @@ static int handle_get_device_id(cJSON *value, cmd_type_t type) {
     
     return 0;
 }
+
+void send_get_device_id() {
+    ESP_LOGI(TAG, "Sending get device id");
+    
+    // Tạo JSON response
+    cJSON *response = cJSON_CreateObject();
+    cJSON_AddStringToObject(response, "name", CMD_GET_DEVICE_ID);
+    cJSON_AddStringToObject(response, "devT", CONFIG_DEVICE_TYPE);
+    cJSON_AddStringToObject(response, "devExtAddr", device_get_mac_str());
+    
+    char *response_str = cJSON_PrintUnformatted(response);
+    if (response_str) {
+        ESP_LOGI(TAG, "Sending response: %s", response_str);
+        send_response(response_str, CMD_TYPE_MQTT);
+        cJSON_free(response_str);
+    }
+    cJSON_Delete(response);
+    
+    return ;
+}
+
 static int handle_get_status(cJSON *value, cmd_type_t type) {
     ESP_LOGI(TAG, "Handle get status");
     // TODO: Implement
@@ -375,7 +396,7 @@ static void test_publish_task(void *pvParameters)
         char payload[128];
         strcpy(payload, "hello from device_control!");
 
-        if (mqtt_service_is_connected()) {
+        if (mqtt_service_mqtt_connected()) {
             int msg_id = mqtt_service_publish(mqtt_config.topic_pub, payload, 0, 1, 0);
             ESP_LOGI(TAG, "Published msg_id=%d: %s", msg_id, payload);
         } else {

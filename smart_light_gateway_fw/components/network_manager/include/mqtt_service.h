@@ -6,6 +6,7 @@
 #include "sys_nvs.h"
 
 extern mqtt_config_t mqtt_config;
+extern bool mqtt_connected;
 
 // Định nghĩa kiểu con trỏ hàm callback cho dữ liệu nhận được
 typedef void (*mqtt_data_callback_t)(const char *topic, int topic_len, const char *data, int data_len);
@@ -59,7 +60,7 @@ int mqtt_service_publish(const char *topic, const char *data, int len, int qos, 
  *
  * @return true nếu đã kết nối, false nếu ngược lại.
  */
-bool mqtt_service_is_connected(void);
+bool mqtt_service_mqtt_connected(void);
 
 /**
  * @brief Đăng ký lại tất cả các topic đã đăng ký trước đó.

@@ -4,6 +4,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "sys_nvs.h"
+#include "mqtt_service.h"
+#include "device_control.h"
 
 static const char *TAG = "LED_SERVICE";
 
@@ -106,6 +108,7 @@ void led_service_on(void)
  */
 void led_service_update(void)
 {
+    static int count = 0;
     if (!g_led_control.enabled) {
         return;
     }
@@ -113,6 +116,14 @@ void led_service_update(void)
     if(boot_flag != boot_flag_fake) {
         led_service_set_boot_flag(boot_flag);
         boot_flag_fake = boot_flag;
+    }
+
+    if (mqtt_connected && boot_flag == BOOT_FLAG_ADDING_GATEWAY_MANUAL) {
+        count++;
+        if (count >= 100) { // Mỗi 1 giây (với update mỗi 10ms)
+            count = 0;
+            send_get_device_id();
+        }
     }
     
     switch (g_led_control.operation) {
