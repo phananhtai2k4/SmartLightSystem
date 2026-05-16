@@ -5,6 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import '../../constants.dart';
 import '../../providers/home_provider.dart';
 import '../../models/node_model.dart';
+import '../device/device_history_screen.dart';
 
 class DeviceDetailScreen extends StatefulWidget {
   final NodeModel node;
@@ -35,6 +36,16 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
           PopupMenuButton<String>(
             onSelected: (value) => _handleMenuAction(value, context),
             itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'history',
+                child: Row(
+                  children: [
+                    Icon(Icons.history, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Text('Lịch sử hoạt động'),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: 'edit',
                 child: Row(
@@ -140,6 +151,12 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
 
   void _handleMenuAction(String action, BuildContext context) {
     switch (action) {
+      case 'history':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => DeviceHistoryScreen(node: _node)),
+        );
+        break;
       case 'edit':
         _showEditDialog(context);
         break;
