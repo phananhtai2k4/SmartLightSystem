@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
 import '../../constants.dart';
 import '../../providers/home_provider.dart';
 import '../../models/gateway_model.dart';
@@ -279,97 +281,128 @@ class _NodeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final homeProvider = context.read<HomeProvider>();
 
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => DeviceDetailScreen(node: node)),
+    return StreamBuilder<DatabaseEvent>(
+      stream: FirebaseDatabase.instanceFor(
+        app: Firebase.app(),
+        databaseURL:
+            'https://smartlight-68b42-default-rtdb.asia-southeast1.firebasedatabase.app',
+      ).ref().child('nodes').child(node.id).onValue,
+      builder: (context, snapshot) {
+        bool isOnline = node.online;
+        bool isStateOn = node.stateOn;
+
+        if (snapshot.hasData && snapshot.data?.snapshot.value != null) {
+          final nodeData = Map<dynamic, dynamic>.from(
+            snapshot.data!.snapshot.value as Map,
+          );
+          if (nodeData.containsKey('online')) {
+            isOnline = nodeData['online'] == true;
+          }
+          if (nodeData.containsKey('state_on')) {
+            isStateOn = nodeData['state_on'] == true;
+          }
+        }
+
+        final updatedNode = node.copyWith(online: isOnline, stateOn: isStateOn);
+
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => DeviceDetailScreen(node: updatedNode),
+              ),
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: isStateOn
+                  ? AppConstants.accentColor.withOpacity(0.2)
+                  : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isStateOn
+                    ? AppConstants.accentColor
+                    : Colors.grey.shade300,
+                width: 2,
+              ),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Icon(
+                      Icons.lightbulb,
+                      size: 36,
+                      color: isStateOn ? AppConstants.accentColor : Colors.grey,
+                    ),
+                    // Trạng thái online
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isOnline
+                            ? Colors.green.withOpacity(0.2)
+                            : Colors.red.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        isOnline ? 'ON' : 'OFF',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: isOnline ? Colors.green : Colors.red,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Text(
+                  updatedNode.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      isStateOn ? 'Đang bật' : 'Đã tắt',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isStateOn ? Colors.orange : Colors.grey,
+                      ),
+                    ),
+                    Transform.scale(
+                      scale: 0.8,
+                      child: Switch(
+                        value: isStateOn,
+                        activeColor: AppConstants.accentColor,
+                        onChanged: isOnline
+                            ? (value) {
+                                homeProvider.toggleNode(node.id, value);
+                              }
+                            : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: node.stateOn
-              ? AppConstants.accentColor.withOpacity(0.2)
-              : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: node.stateOn
-                ? AppConstants.accentColor
-                : Colors.grey.shade300,
-            width: 2,
-          ),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Icon(
-                  Icons.lightbulb,
-                  size: 36,
-                  color: node.stateOn ? AppConstants.accentColor : Colors.grey,
-                ),
-                // Trạng thái online
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: node.online
-                        ? Colors.green.withOpacity(0.2)
-                        : Colors.red.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    node.online ? 'ON' : 'OFF',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: node.online ? Colors.green : Colors.red,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const Spacer(),
-            Text(
-              node.name,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  node.stateOn ? 'Đang bật' : 'Đã tắt',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: node.stateOn ? Colors.orange : Colors.grey,
-                  ),
-                ),
-                Transform.scale(
-                  scale: 0.8,
-                  child: Switch(
-                    value: node.stateOn,
-                    activeColor: AppConstants.accentColor,
-                    onChanged: node.online
-                        ? (value) {
-                            homeProvider.toggleNode(node.id, value);
-                          }
-                        : null,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

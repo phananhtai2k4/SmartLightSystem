@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
 import '../../constants.dart';
 import '../../providers/home_provider.dart';
 import '../../models/node_model.dart';
@@ -59,32 +61,77 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
       ),
       body: Consumer<HomeProvider>(
         builder: (context, homeProvider, child) {
-          // Cập nhật node từ provider để có state mới nhất
-          final updatedNode = homeProvider.nodes.firstWhere(
+          // Lấy base node từ provider để có name mới nhất
+          final baseNode = homeProvider.nodes.firstWhere(
             (n) => n.id == _node.id,
             orElse: () => _node,
           );
 
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // Card điều khiển chính
-              _ControlCard(
-                node: updatedNode,
-                onToggle: (value) {
-                  homeProvider.toggleNode(updatedNode.id, value);
-                },
-              ),
+          return StreamBuilder<DatabaseEvent>(
+            stream: FirebaseDatabase.instanceFor(
+              app: Firebase.app(),
+              databaseURL:
+                  'https://smartlight-68b42-default-rtdb.asia-southeast1.firebasedatabase.app',
+            ).ref().child('nodes').child(_node.id).onValue,
+            builder: (context, snapshot) {
+              bool isOnline = baseNode.online;
+              bool isStateOn = baseNode.stateOn;
+              String lightValue = '--';
+              String currentValue = '--';
 
-              const SizedBox(height: 24),
+              if (snapshot.hasData && snapshot.data?.snapshot.value != null) {
+                final nodeData = Map<dynamic, dynamic>.from(
+                  snapshot.data!.snapshot.value as Map,
+                );
+                if (nodeData.containsKey('online')) {
+                  isOnline = nodeData['online'] == true;
+                }
+                if (nodeData.containsKey('state_on')) {
+                  isStateOn = nodeData['state_on'] == true;
+                }
 
-              // Thông tin chi tiết
-              // _DetailCard(node: updatedNode),
-              const SizedBox(height: 24),
+                if (nodeData.containsKey('sensor') &&
+                    nodeData['sensor'] != null) {
+                  final sensorData = Map<dynamic, dynamic>.from(
+                    nodeData['sensor'] as Map,
+                  );
+                  if (sensorData.containsKey('light'))
+                    lightValue = '${sensorData['light']} lux';
+                  if (sensorData.containsKey('current'))
+                    currentValue = '${sensorData['current']} mA';
+                }
+              }
 
-              // Trạng thái kết nối
-              _StatusCard(node: updatedNode),
-            ],
+              final updatedNode = baseNode.copyWith(
+                online: isOnline,
+                stateOn: isStateOn,
+              );
+
+              return ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // Card điều khiển chính
+                  _ControlCard(
+                    node: updatedNode,
+                    onToggle: (value) {
+                      // Nếu có thiết lập sẵn để đổi state thì gọi qua provider
+                      // Nếu cần cập nhật trực tiếp rtdb, có thể gọi FirebaseDatabase.instance.ref().child('nodes/${_node.id}/state_on').set(value);
+                      homeProvider.toggleNode(updatedNode.id, value);
+                    },
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Cảm biến
+                  _SensorCard(light: lightValue, current: currentValue),
+
+                  const SizedBox(height: 24),
+
+                  // Trạng thái kết nối
+                  _StatusCard(node: updatedNode),
+                ],
+              );
+            },
           );
         },
       ),
@@ -482,6 +529,46 @@ class _StatusCard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SensorCard extends StatelessWidget {
+  final String light;
+  final String current;
+
+  const _SensorCard({required this.light, required this.current});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.sensors, color: AppConstants.primaryColor),
+                SizedBox(width: 8),
+                Text(
+                  'Thông số cảm biến',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _DetailRow(icon: Icons.light_mode, label: 'Độ sáng', value: light),
+            const Divider(),
+            _DetailRow(
+              icon: Icons.electric_bolt,
+              label: 'Dòng điện',
+              value: current,
             ),
           ],
         ),
