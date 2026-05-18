@@ -60,6 +60,7 @@ async function findNodeByAddress(gatewayMac, meshAddress) {
 }
 
 const nodeDataBuffer = {};
+const nodeAggBuffer = {};
 
 client.on("message", async (topic, message) => {
   const data = message.toString();
@@ -117,6 +118,142 @@ client.on("message", async (topic, message) => {
           current: current_ma,
         };
 
+        // Xử lý nodeAggBuffer (cập nhật 10 phút một lần)
+        const min10 = Math.floor(date.getMinutes() / 10) * 10;
+        const id10m = `${year}-${month}-${day}T${hours}:${String(min10).padStart(2, "0")}`;
+
+        if (!nodeAggBuffer[nodeMac]) {
+          nodeAggBuffer[nodeMac] = {
+            id10m: id10m,
+            fYear: year,
+            fMonth: month,
+            fDay: day,
+            fHours: hours,
+            min10: min10,
+            fDate: date,
+            sumLight: light_lux,
+            sumCurrent: current_ma,
+            count: 1,
+          };
+        } else {
+          if (nodeAggBuffer[nodeMac].id10m !== id10m) {
+            // Chuyển sang khung 10 phút mới -> Ghi aggregates của khung cũ
+            const prevAgg = nodeAggBuffer[nodeMac];
+
+            const hour4 = Math.floor(prevAgg.fHours / 4) * 4;
+            const id1h = `${prevAgg.fYear}-${prevAgg.fMonth}-${prevAgg.fDay}T${prevAgg.fHours}:00`;
+            const id4h = `${prevAgg.fYear}-${prevAgg.fMonth}-${prevAgg.fDay}T${String(hour4).padStart(2, "0")}:00`;
+
+            const ts10m = new Date(
+              prevAgg.fYear,
+              prevAgg.fDate.getMonth(),
+              prevAgg.fDate.getDate(),
+              prevAgg.fHours,
+              prevAgg.min10,
+            );
+            const ts1h = new Date(
+              prevAgg.fYear,
+              prevAgg.fDate.getMonth(),
+              prevAgg.fDate.getDate(),
+              prevAgg.fHours,
+              0,
+            );
+            const ts4h = new Date(
+              prevAgg.fYear,
+              prevAgg.fDate.getMonth(),
+              prevAgg.fDate.getDate(),
+              hour4,
+              0,
+            );
+
+            const ref10m = db
+              .collection("nodes")
+              .doc(nodeMac)
+              .collection("measurements_10m")
+              .doc(prevAgg.id10m);
+            const ref1h = db
+              .collection("nodes")
+              .doc(nodeMac)
+              .collection("measurements_1h")
+              .doc(id1h);
+            const ref4h = db
+              .collection("nodes")
+              .doc(nodeMac)
+              .collection("measurements_4h")
+              .doc(id4h);
+
+            const sumL = prevAgg.sumLight;
+            const sumC = prevAgg.sumCurrent;
+            const countA = prevAgg.count;
+
+            db.runTransaction(async (transaction) => {
+              const snap10m = await transaction.get(ref10m);
+              const snap1h = await transaction.get(ref1h);
+              const snap4h = await transaction.get(ref4h);
+
+              const updateAgg = (ref, snap, timestampDate) => {
+                if (!snap.exists) {
+                  transaction.set(ref, {
+                    timestamp:
+                      admin.firestore.Timestamp.fromDate(timestampDate),
+                    count: countA,
+                    avg_light: sumL / countA,
+                    avg_current: sumC / countA,
+                  });
+                } else {
+                  const existing = snap.data();
+                  const exCount = existing.count || 0;
+                  const newCount = exCount + countA;
+
+                  // Tính toán lại tổng dựa trên trung bình cũ (vì đã loại bỏ trường sum_light, sum_current)
+                  const exSumLight = (existing.avg_light || 0) * exCount;
+                  const exSumCurrent = (existing.avg_current || 0) * exCount;
+
+                  transaction.update(ref, {
+                    count: newCount,
+                    avg_light: (exSumLight + sumL) / newCount,
+                    avg_current: (exSumCurrent + sumC) / newCount,
+                  });
+                }
+              };
+
+              updateAgg(ref10m, snap10m, ts10m);
+              updateAgg(ref1h, snap1h, ts1h);
+              updateAgg(ref4h, snap4h, ts4h);
+            })
+              .then(() => {
+                console.log(
+                  `[Firestore] Đã ghi AGGREGATES (10m, 1h, 4h) Node ${nodeMac} (phút ${prevAgg.id10m})`,
+                );
+              })
+              .catch((err) => {
+                console.error(
+                  `[Firestore] Lỗi ghi AGGREGATES Node ${nodeMac}:`,
+                  err,
+                );
+              });
+
+            // Reset agg buffer
+            nodeAggBuffer[nodeMac] = {
+              id10m: id10m,
+              fYear: year,
+              fMonth: month,
+              fDay: day,
+              fHours: hours,
+              min10: min10,
+              fDate: date,
+              sumLight: light_lux,
+              sumCurrent: current_ma,
+              count: 1,
+            };
+          } else {
+            // Cùng khung 10 phút, tiếp tục cộng dồn
+            nodeAggBuffer[nodeMac].sumLight += light_lux;
+            nodeAggBuffer[nodeMac].sumCurrent += current_ma;
+            nodeAggBuffer[nodeMac].count += 1;
+          }
+        }
+
         if (!nodeDataBuffer[nodeMac]) {
           // Chưa có buffer cho node này thì khởi tạo
           nodeDataBuffer[nodeMac] = {
@@ -128,38 +265,33 @@ client.on("message", async (topic, message) => {
           if (nodeDataBuffer[nodeMac].minuteId !== minuteId) {
             // Cùng node nhưng sang phút mới -> Đẩy toàn bộ dữ liệu của phút trước lên Firestore
             const prevData = nodeDataBuffer[nodeMac];
-            const docRef = db
-              .collection("nodes")
-              .doc(nodeMac)
-              .collection("measurements")
-              .doc(prevData.minuteId);
 
             const firestoreMinuteDate = prevData.minuteDate;
             const firestoreData = prevData.data;
 
-            // Xử lý ghi Firestore không chặn luồng chính
+            const rawRef = db
+              .collection("nodes")
+              .doc(nodeMac)
+              .collection("measurements_raw")
+              .doc(prevData.minuteId);
+
+            // Ghi RAW mỗi phút
             db.runTransaction(async (transaction) => {
-              const docSnap = await transaction.get(docRef);
-              if (!docSnap.exists) {
-                transaction.set(docRef, {
+              const rawSnap = await transaction.get(rawRef);
+              if (!rawSnap.exists) {
+                transaction.set(rawRef, {
                   minute:
                     admin.firestore.Timestamp.fromDate(firestoreMinuteDate),
                   data: firestoreData,
                 });
               } else {
-                transaction.update(docRef, {
+                transaction.update(rawRef, {
                   data: admin.firestore.FieldValue.arrayUnion(...firestoreData),
                 });
               }
-            })
-              .then(() => {
-                console.log(
-                  `[Firestore] Đã ghi gộp ${firestoreData.length} bản tin của Node ${nodeMac} (phút ${prevData.minuteId})`,
-                );
-              })
-              .catch((err) => {
-                console.error(`[Firestore] Lỗi ghi gộp Node ${nodeMac}:`, err);
-              });
+            }).catch((err) => {
+              console.error(`[Firestore] Lỗi ghi RAW Node ${nodeMac}:`, err);
+            });
 
             // Khởi tạo lại buffer cho phút hiện tại
             nodeDataBuffer[nodeMac] = {
