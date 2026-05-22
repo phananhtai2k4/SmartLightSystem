@@ -6,6 +6,7 @@ import '../../constants.dart';
 import '../../providers/home_provider.dart';
 import '../../models/node_model.dart';
 import '../device/device_history_screen.dart';
+import '../device/device_statistics_screen.dart';
 
 class DeviceDetailScreen extends StatefulWidget {
   final NodeModel node;
@@ -36,6 +37,16 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
           PopupMenuButton<String>(
             onSelected: (value) => _handleMenuAction(value, context),
             itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'statistics',
+                child: Row(
+                  children: [
+                    Icon(Icons.bar_chart, color: Colors.green),
+                    SizedBox(width: 8),
+                    Text('Thống kê'),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: 'history',
                 child: Row(
@@ -151,6 +162,14 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
 
   void _handleMenuAction(String action, BuildContext context) {
     switch (action) {
+      case 'statistics':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DeviceStatisticsScreen(node: _node),
+          ),
+        );
+        break;
       case 'history':
         Navigator.push(
           context,
