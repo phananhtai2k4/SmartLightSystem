@@ -46,7 +46,14 @@ client.on("error", (err) => {
 const db = admin.firestore();
 const rtdb = admin.database();
 
+const nodeMacCache = {};
+
 async function findNodeByAddress(gatewayMac, meshAddress) {
+  const cacheKey = `${gatewayMac}_${meshAddress}`;
+  if (nodeMacCache[cacheKey]) {
+    return nodeMacCache[cacheKey]; // Lấy thẳng từ RAM, 0 tốn read Firestore
+  }
+
   const nodesRef = db.collection("nodes");
   const snapshot = await nodesRef
     .where("gatewayMac", "==", String(gatewayMac))
@@ -56,7 +63,10 @@ async function findNodeByAddress(gatewayMac, meshAddress) {
   if (snapshot.empty) {
     return null;
   }
-  return snapshot.docs[0].id;
+
+  // Lưu vào cache
+  nodeMacCache[cacheKey] = snapshot.docs[0].id;
+  return nodeMacCache[cacheKey];
 }
 
 const nodeDataBuffer = {};
@@ -275,23 +285,19 @@ client.on("message", async (topic, message) => {
               .collection("measurements_raw")
               .doc(prevData.minuteId);
 
-            // Ghi RAW mỗi phút
-            db.runTransaction(async (transaction) => {
-              const rawSnap = await transaction.get(rawRef);
-              if (!rawSnap.exists) {
-                transaction.set(rawRef, {
+            // Ghi RAW mỗi phút (Sử dụng set có merge, tránh 100% lệnh đọc)
+            rawRef
+              .set(
+                {
                   minute:
                     admin.firestore.Timestamp.fromDate(firestoreMinuteDate),
-                  data: firestoreData,
-                });
-              } else {
-                transaction.update(rawRef, {
                   data: admin.firestore.FieldValue.arrayUnion(...firestoreData),
-                });
-              }
-            }).catch((err) => {
-              console.error(`[Firestore] Lỗi ghi RAW Node ${nodeMac}:`, err);
-            });
+                },
+                { merge: true },
+              )
+              .catch((err) => {
+                console.error(`[Firestore] Lỗi ghi RAW Node ${nodeMac}:`, err);
+              });
 
             // Khởi tạo lại buffer cho phút hiện tại
             nodeDataBuffer[nodeMac] = {
