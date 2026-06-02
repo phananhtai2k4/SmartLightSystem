@@ -101,6 +101,12 @@ void app_event_handler(const app_event_t *event)
     // Thêm các case khác ở đây, ví dụ:
     case EVENT_BUTTON_HOLD_3S:
         ESP_LOGI(TAG, "Sự kiện: Nhấn giữ nút 3 giây");
+        board_adc_rms_deinit();
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+        ESP_LOGI(TAG, "deinit ADC RMS xong");
+        board_adc_deinit();
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+        ESP_LOGI(TAG, "deinit ADC xong");
         boot_flags_write(BOOT_FLAG_ADDING_DEVICE_MANUAL);
         ble_mesh_core_node_local_reset();
         ble_mesh_core_node_prov_enable();

@@ -23,7 +23,7 @@
 
 static adc_oneshot_unit_handle_t s_adc_handle = NULL;
 static adc_cali_handle_t s_adc_cali_handle = NULL;
-static TaskHandle_t s_adc_task_handle = NULL;
+TaskHandle_t adc_task_handle = NULL;
 static bool s_do_calibration = false;
 
 static bool board_adc_calibration_init(adc_unit_t unit, adc_channel_t channel, adc_atten_t atten, adc_cali_handle_t *out_handle)
@@ -131,7 +131,7 @@ static void board_adc_task(void *arg)
 
 esp_err_t board_adc_init(void)
 {
-	if (s_adc_task_handle != NULL) {
+	if (adc_task_handle != NULL) {
 		return ESP_OK;
 	}
 
@@ -158,7 +158,7 @@ esp_err_t board_adc_init(void)
 
 	s_do_calibration = board_adc_calibration_init(BOARD_ADC_UNIT, BOARD_ADC_CHANNEL, BOARD_ADC_ATTEN, &s_adc_cali_handle);
 
-	BaseType_t task_ret = xTaskCreate(board_adc_task, "board_adc_task", 4096, NULL, 5, &s_adc_task_handle);
+	BaseType_t task_ret = xTaskCreate(board_adc_task, "board_adc_task", 4096, NULL, 5, &adc_task_handle);
 	if (task_ret != pdPASS) {
 		ESP_LOGE(TAG, "Create ADC task failed");
 		if (s_do_calibration) {
@@ -174,4 +174,25 @@ esp_err_t board_adc_init(void)
 	ESP_LOGI(TAG, "ADC initialized: unit=%d channel=%d, period=%dms",
 			 BOARD_ADC_UNIT, BOARD_ADC_CHANNEL, BOARD_ADC_READ_PERIOD_MS);
 	return ESP_OK;
+}
+
+//xóa task ADC khi không cần thiết nữa
+void board_adc_deinit(void)
+{
+	if (adc_task_handle != NULL) {
+		vTaskDelete(adc_task_handle);
+		adc_task_handle = NULL;
+		ESP_LOGI(TAG, "ADC Task deleted.");
+	}
+
+	if (s_do_calibration) {
+		board_adc_calibration_deinit(s_adc_cali_handle);
+		s_adc_cali_handle = NULL;
+		s_do_calibration = false;
+	}
+
+	if (s_adc_handle) {
+		ESP_ERROR_CHECK(adc_oneshot_del_unit(s_adc_handle));
+		s_adc_handle = NULL;
+	}
 }

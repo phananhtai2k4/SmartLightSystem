@@ -38,6 +38,7 @@
 #define RMS_CALIBRATION_FACTOR              0.00054317
 static adc_channel_t channel[2] = {ADC_CHANNEL_4, ADC_CHANNEL_7}; // ADC_CHANNEL_4 = GPIO32, ADC_CHANNEL_7 = GPIO35
 static TaskHandle_t s_task_handle;
+TaskHandle_t adc_rms_handle = NULL;
 static const char *TAG = "BOARD_ADC_RMS";
 
 static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data)
@@ -78,6 +79,15 @@ static void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc
     ESP_LOGI(TAG, "Continuous ADC initialized with %d channels, sample freq: %ld Hz", channel_num, dig_cfg.sample_freq_hz);
 }
 
+static void continuous_adc_deinit(adc_continuous_handle_t handle)
+{
+    if (handle) {
+        ESP_ERROR_CHECK(adc_continuous_deinit(handle));
+    }
+}
+
+adc_continuous_handle_t handle = NULL;
+volatile bool adc_stop_requested = false;
 void board_adc_rms_task(void *pvParameters)
 {
     esp_err_t ret;
@@ -86,7 +96,6 @@ void board_adc_rms_task(void *pvParameters)
 
     s_task_handle = xTaskGetCurrentTaskHandle();
 
-    adc_continuous_handle_t handle = NULL;
     continuous_adc_init(channel, sizeof(channel) / sizeof(adc_channel_t), &handle);
 
     adc_continuous_evt_cbs_t cbs = {
@@ -97,7 +106,10 @@ void board_adc_rms_task(void *pvParameters)
 
     while (1) {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
+        if (adc_stop_requested)
+        {
+            break;
+        }
         while (1) {
             ret = adc_continuous_read(handle, result, EXAMPLE_READ_LEN, &ret_num, 0);
             if (ret == ESP_OK) {
@@ -188,11 +200,18 @@ void board_adc_rms_task(void *pvParameters)
     ESP_ERROR_CHECK(adc_continuous_deinit(handle));
     vTaskDelete(NULL);
 }
-
 void board_adc_rms_init(void)
 {
     ESP_LOGI(TAG, "Creating ADC RMS Task...");
-    xTaskCreatePinnedToCore(board_adc_rms_task, "adc_rms_task", 4096 * 2*3, NULL, 5, NULL, 1);
+    xTaskCreatePinnedToCore(board_adc_rms_task, "adc_rms_task", 4096 * 2*3, NULL, 5, &adc_rms_handle, 1);
 }
 
-//biến trở xoay ngược kim đồng hồ thì dòng tăng, xoay cùng chiều kim đồng hồ thì dòng giảm
+void board_adc_rms_deinit(void)
+{
+    adc_stop_requested = true;
+
+    if (adc_rms_handle)
+    {
+        xTaskNotifyGive(adc_rms_handle);
+    }
+}
