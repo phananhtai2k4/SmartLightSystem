@@ -32,6 +32,9 @@ static void handle_onoff_set_event(const event_data_onoff_set_t *onoff_data)
     // Giả sử có hàm board_relay_set_state() trong board_hal
     // board_relay_set_state(onoff_data->onoff_state); 
     board_led_set_state(RELAY_STATE_LED, onoff_data->onoff_state ? LED_STATE_ON : LED_STATE_OFF);
+    vTaskDelay(50 / portTICK_PERIOD_MS);
+    ble_mesh_core_publish_onoff_status_by_app();
+    vTaskDelay(50 / portTICK_PERIOD_MS);
 }
 
 /**
@@ -48,7 +51,9 @@ static void handle_button_press_event(void)
     onoff_server.state.onoff = new_state;
 
     // 4. Publish trạng thái mới lên mạng để các thiết bị khác đồng bộ
-    ble_mesh_core_publish_onoff_status();
+    vTaskDelay(50 / portTICK_PERIOD_MS);
+    ble_mesh_core_publish_onoff_status_by_button();
+    vTaskDelay(50 / portTICK_PERIOD_MS);
 }
 
 

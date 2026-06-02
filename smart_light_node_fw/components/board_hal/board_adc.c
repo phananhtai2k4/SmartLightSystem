@@ -12,11 +12,12 @@
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
 #include "sys_nvs.h"
+#include "board_hal.h"
 
 #define TAG "BOARD_ADC"
 
-#define BOARD_ADC_UNIT           ADC_UNIT_1
-#define BOARD_ADC_CHANNEL        ADC_CHANNEL_6  // Chân GPIO34
+#define BOARD_ADC_UNIT           ADC_UNIT_2
+#define BOARD_ADC_CHANNEL        ADC_CHANNEL_8  // Chân GPIO25
 #define BOARD_ADC_ATTEN          ADC_ATTEN_DB_12
 #define BOARD_ADC_READ_PERIOD_MS 5000
 
@@ -87,13 +88,13 @@ static void board_adc_task(void *arg)
         int raw = 0;
         esp_err_t ret = adc_oneshot_read(s_adc_handle, BOARD_ADC_CHANNEL, &raw);
         if (ret == ESP_OK) {
-            ESP_LOGI(TAG, "ADC raw: %d", raw);
+            // ESP_LOGI(TAG, "ADC raw: %d", raw);
 
             if (s_do_calibration) {
                 int voltage_mv = 0;
                 ret = adc_cali_raw_to_voltage(s_adc_cali_handle, raw, &voltage_mv);
                 if (ret == ESP_OK) {
-                    ESP_LOGI(TAG, "ADC voltage: %d mV", voltage_mv);
+                    // ESP_LOGI(TAG, "ADC voltage: %d mV", voltage_mv);
 
                     // Calculate light intensity in Lux
                     float v_out = (float)voltage_mv / 1000.0;
@@ -108,8 +109,9 @@ static void board_adc_task(void *arg)
                         // Calculate Lux (approximate formula for GL5528 LDR)
                         float lux = 500.0 / r_ldr_kOhm;
                         saved_status.light_lux = (uint16_t)lux;
-
-                        ESP_LOGI(TAG, "LDR resistance: %.2f kOhm | Light intensity: %.2f Lux", r_ldr_kOhm, lux);
+						if (log_adc1) {
+							ESP_LOGI(TAG, "LDR resistance: %.2f kOhm | Light intensity: %.2f Lux", r_ldr_kOhm, lux);
+						}
                     } else {
                         saved_status.light_lux = 0.0;
                         ESP_LOGI(TAG, "Complete darkness (0 Lux)");

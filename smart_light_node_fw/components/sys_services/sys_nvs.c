@@ -6,6 +6,7 @@
 #include "nvs.h"
 #include "esp_log.h"
 #include "sys_nvs.h" // Nhúng file header công khai
+#include "board_hal.h"
 
 #define TAG "SYS_NVS"
 #define FLAGS_PARTITION_LABEL "flags"
@@ -88,7 +89,9 @@ static esp_err_t load_blob(const char *key, void *data, size_t *length)
 
 esp_err_t sys_nvs_save_device_status(const device_status_t *status)
 {
-    ESP_LOGI(TAG, "Đang lưu trạng thái thiết bị: onoff=%d, lux=%d, current=%dmA", status->onoff, status->light_lux, status->current_ma);
+    if (log_adc1) {
+        ESP_LOGI(TAG, "Đang lưu trạng thái thiết bị: onoff=%d, lux=%d, current=%dmA", status->onoff, status->light_lux, status->current_ma);
+    }
     return save_blob(KEY_DEVICE_STATUS, status, sizeof(device_status_t));
 }
 

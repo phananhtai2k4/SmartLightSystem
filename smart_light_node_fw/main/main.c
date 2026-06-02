@@ -66,7 +66,7 @@ void app_main(void)
         ESP_LOGE(TAG, "Khởi tạo BLE Mesh Core thất bại!");
         return;
     }
-    // vTaskDelay(pdMS_TO_TICKS(1000));
-    // board_adc_rms_init();
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    board_adc_rms_init();
     ESP_LOGI(TAG, "Khởi tạo hoàn tất. Thiết bị đang hoạt động.");
 }

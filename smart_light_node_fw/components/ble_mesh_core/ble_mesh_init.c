@@ -16,6 +16,7 @@
 #include "bluetooth_init.h"
 #include "esp_ble_mesh_local_data_operation_api.h"
 #include "device_identity.h"
+#include "board_hal.h"
 #define TAG "BLE_MESH_CORE"
 
 // Biến static để theo dõi Transaction ID (TID) cho các tin nhắn gửi đi
@@ -221,13 +222,46 @@ esp_err_t ble_mesh_core_send_onoff_set(uint16_t dest_addr, uint8_t onoff)
     return err;
 }
 
-esp_err_t ble_mesh_core_publish_onoff_status(void)
+esp_err_t ble_mesh_core_publish_onoff_status_by_button(void)
 {
     // Lấy model handle từ biến 'onoff_server' đã được khai báo trong composition.c
     extern esp_ble_mesh_gen_onoff_srv_t onoff_server;
 
     // Trạng thái onoff được lưu trong srv->state.onoff
     uint8_t current_state = onoff_server.state.onoff;
+    if (current_state == 0) {
+        current_state = OFF_LED_BY_BUTTON; // Tắt
+    } else {
+        current_state = ON_LED_BY_BUTTON; // Bật
+    }
+
+    // Publish tin nhắn status
+    esp_err_t err = esp_ble_mesh_model_publish(onoff_server.model, 
+                                               ESP_BLE_MESH_MODEL_OP_GEN_ONOFF_STATUS,
+                                               sizeof(current_state), 
+                                               &current_state, 
+                                               ROLE_NODE);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Không thể publish OnOff Status (err %d)", err);
+    } else {
+        ESP_LOGI(TAG, "Đã publish OnOff Status: %d", current_state);
+    }
+
+    return err;
+}
+
+esp_err_t ble_mesh_core_publish_onoff_status_by_app(void)
+{
+    // Lấy model handle từ biến 'onoff_server' đã được khai báo trong composition.c
+    extern esp_ble_mesh_gen_onoff_srv_t onoff_server;
+
+    // Trạng thái onoff được lưu trong srv->state.onoff
+    uint8_t current_state = onoff_server.state.onoff;
+    if (current_state == 0) {
+        current_state = OFF_LED_BY_APP; // Tắt
+    } else {
+        current_state = ON_LED_BY_APP; // Bật
+    }
 
     // Publish tin nhắn status
     esp_err_t err = esp_ble_mesh_model_publish(onoff_server.model, 

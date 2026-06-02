@@ -17,8 +17,12 @@
 #define BUTTON_GPIO     0
 
 // Định nghĩa các chân GPIO cho mỗi đèn LED chức năng
-#define STATUS_LED_GPIO         GPIO_NUM_2
-#define RELAY_STATE_LED_GPIO    GPIO_NUM_4
+#define STATUS_LED_GPIO         GPIO_NUM_4
+#define RELAY_STATE_LED_GPIO    GPIO_NUM_2
+
+extern bool log_adc1;
+extern bool log_adc2;
+extern bool log_adc3;
 
 /*
  * @brief Định danh cho các đèn LED cụ thể trên bo mạch.
@@ -42,6 +46,15 @@ typedef enum {
     LED_STATE_BLINK_SLOW,   // Trạng thái Nhấp nháy chậm
 } board_led_state_t;
 
+/*
+ * @brief Các trạng thái nhận được của đèn LED.
+ */
+typedef enum {
+    OFF_LED_BY_BUTTON = 0,      // tắt từ nút cứng
+    ON_LED_BY_BUTTON = 1,       // bật từ nút cứng
+    OFF_LED_BY_APP = 2,         // tắt từ ứng dụng
+    ON_LED_BY_APP = 3,          // bật từ ứng dụng
+} board_led_state_get_t;
 
 /**
  * @brief Khởi tạo tất cả các phần cứng đặc thù của bo mạch.

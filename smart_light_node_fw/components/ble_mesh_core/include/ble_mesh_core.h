@@ -89,7 +89,8 @@ esp_err_t ble_mesh_core_send_onoff_set_unack(uint16_t dest_addr, uint8_t onoff);
  *
  * @return esp_err_t ESP_OK nếu publish thành công.
  */
-esp_err_t ble_mesh_core_publish_onoff_status(void);
+esp_err_t ble_mesh_core_publish_onoff_status_by_button(void);
+esp_err_t ble_mesh_core_publish_onoff_status_by_app(void);
 esp_err_t ble_mesh_core_node_local_reset(void);
 esp_err_t ble_mesh_core_node_prov_enable(void);
 void auto_rebind_on_startup(void);
@@ -97,5 +98,4 @@ esp_err_t self_bind_vendor_model(uint16_t element_addr, uint16_t app_idx, uint16
 esp_ble_mesh_model_t *ble_mesh_core_find_vendor_model(const esp_ble_mesh_elem_t *element, uint16_t company_id, uint16_t model_id);
 void ble_mesh_composition_setup_defaults(void);
 esp_err_t ble_mesh_core_publish_current_status(void);
-// esp_err_t ble_mesh_core_publish_onoff_status(void);
 #endif // __BLE_MESH_CORE_H__

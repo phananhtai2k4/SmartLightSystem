@@ -14,6 +14,7 @@
 #include "freertos/semphr.h"
 #include "esp_adc/adc_continuous.h"
 #include "sys_nvs.h"
+#include "board_hal.h"
 
 #define EXAMPLE_ADC_UNIT                    ADC_UNIT_1
 #define _EXAMPLE_ADC_UNIT_STR(unit)         #unit
@@ -35,15 +36,9 @@
 // User required read length
 #define EXAMPLE_READ_LEN                    4000
 #define RMS_CALIBRATION_FACTOR              0.00054317
-
-// Target: ADC1_CHANNEL_7 (GPIO35 on ESP32)
-// static adc_channel_t channel[1] = {ADC_CHANNEL_7};
-static adc_channel_t channel[1] = {ADC_CHANNEL_5};  // Chân GPIO32
+static adc_channel_t channel[2] = {ADC_CHANNEL_4, ADC_CHANNEL_7}; // ADC_CHANNEL_4 = GPIO32, ADC_CHANNEL_7 = GPIO35
 static TaskHandle_t s_task_handle;
 static const char *TAG = "BOARD_ADC_RMS";
-//đòng mac và min trong 1 lần đọc
-static double s_current_max = 0.0;
-static double s_current_min = 0.0;
 
 static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data)
 {
@@ -110,52 +105,79 @@ void board_adc_rms_task(void *pvParameters)
                 if (ret_num != EXAMPLE_READ_LEN) {
                     continue;
                 }
-                s_current_max = 0.0;
-                s_current_min = 0.0;
-                double current_sum = 0.0;
-                uint32_t valid_count = 0;
+                
+                double ch_max[2] = {0.0, 0.0};
+                double ch_min[2] = {4096.0, 4096.0}; // Khởi tạo với giá trị lớn để tìm min đúng
+                double ch_sum[2] = {0.0, 0.0};
+                uint32_t ch_valid_count[2] = {0, 0};
 
-                // Bước 1: Tính Offset trên TOÀN BỘ mẫu vừa đọc được
+                // Bước 1: Tính Offset trên TOÀN BỘ mẫu vừa đọc được cho cả 2 kênh
                 for (int i = 0; i < ret_num; i += SOC_ADC_DIGI_RESULT_BYTES) {
                     adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
-                    if (EXAMPLE_ADC_GET_CHANNEL(p) == channel[0]) {
-                        current_sum += EXAMPLE_ADC_GET_DATA(p);
-                        valid_count++;
+                    uint8_t ch = EXAMPLE_ADC_GET_CHANNEL(p);
+                    int ch_idx = (ch == channel[0]) ? 0 : (ch == channel[1] ? 1 : -1);
+                    
+                    if (ch_idx >= 0) {
                         double current = (double)EXAMPLE_ADC_GET_DATA(p);
-                        if (current > s_current_max) {
-                            s_current_max = current;
+                        ch_sum[ch_idx] += current;
+                        ch_valid_count[ch_idx]++;
+                        if (current > ch_max[ch_idx]) {
+                            ch_max[ch_idx] = current;
                         }
-                        if (current < s_current_min) {
-                            s_current_min = current;
+                        if (current < ch_min[ch_idx]) {
+                            ch_min[ch_idx] = current;
                         }
                     }
                 }
 
-                if (valid_count > 0) {
-                    double voltageOffset = current_sum / valid_count;
-                    double sq_sum = 0.0;
+                double ch_voltageOffset[2] = {0.0, 0.0};
+                double ch_sq_sum[2] = {0.0, 0.0};
 
-                    // Bước 2: Tính RMS trên chính những mẫu đó
-                    for (int i = 0; i < ret_num; i += SOC_ADC_DIGI_RESULT_BYTES) {
-                        adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
-                        if (EXAMPLE_ADC_GET_CHANNEL(p) == channel[0]) {
-                            double diff = (double)EXAMPLE_ADC_GET_DATA(p) - voltageOffset;
-                            sq_sum += diff * diff;
-                        }
-                    }
-
-                    double rms_raw = sqrt(sq_sum / valid_count);
-                    double rms_current = (rms_raw * RMS_CALIBRATION_FACTOR > 0.004) ? (rms_raw * RMS_CALIBRATION_FACTOR) : 0.0;
-                    saved_status.current_ma = (uint16_t)(rms_current * 1000); // Lưu giá trị RMS hiện tại tính được (đơn vị mA)
-
-                    // In log sau mỗi 500ms để không làm chậm hệ thống
-                    static uint32_t last_log_time = 0;
-                    if (xTaskGetTickCount() - last_log_time > pdMS_TO_TICKS(500)) {
-                        ESP_LOGI(TAG, "ret_num: %ld, Offset: %.2f, RMS Raw: %.2f, Current: %.4f A, Max: %.2f, Min: %.2f, avg: %.2f", ret_num, voltageOffset, rms_raw, rms_current, s_current_max, s_current_min, (s_current_max+s_current_min)/2);
-                        last_log_time = xTaskGetTickCount();
-                        sys_nvs_save_device_status(&saved_status);
+                for (int i = 0; i < 2; i++) {
+                    if (ch_valid_count[i] > 0) {
+                        ch_voltageOffset[i] = ch_sum[i] / ch_valid_count[i];
                     }
                 }
+
+                // Bước 2: Tính RMS cho từng kênh
+                for (int i = 0; i < ret_num; i += SOC_ADC_DIGI_RESULT_BYTES) {
+                    adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
+                    uint8_t ch = EXAMPLE_ADC_GET_CHANNEL(p);
+                    int ch_idx = (ch == channel[0]) ? 0 : (ch == channel[1] ? 1 : -1);
+                    
+                    if (ch_idx >= 0 && ch_valid_count[ch_idx] > 0) {
+                        double diff = (double)EXAMPLE_ADC_GET_DATA(p) - ch_voltageOffset[ch_idx];
+                        ch_sq_sum[ch_idx] += diff * diff;
+                    }
+                }
+
+                bool do_save = false;
+                for (int i = 0; i < 2; i++) {
+                    if (ch_valid_count[i] > 0) {
+                        double rms_raw = sqrt(ch_sq_sum[i] / ch_valid_count[i]);
+                        double rms_current = (rms_raw * RMS_CALIBRATION_FACTOR > 0.004) ? (rms_raw * RMS_CALIBRATION_FACTOR) : 0.0;
+                        
+                        if (i == 0) {
+                            saved_status.current_ma = (uint16_t)(rms_current * 1000); // Lưu giá trị RMS của kênh đầu tiên
+                        }
+
+                        // In log sau mỗi 500ms
+                        static uint32_t last_log_time[2] = {0, 0};
+                        if (xTaskGetTickCount() - last_log_time[i] > pdMS_TO_TICKS(500) && ((log_adc2 && i == 0) || (log_adc3 && i == 1))) {
+                            ESP_LOGI(TAG, "CH%d - ret_num: %ld, Offset: %.2f, RMS Raw: %.2f, Current: %.4f A, Max: %.2f, Min: %.2f, avg: %.2f", 
+                                     channel[i], ret_num, ch_voltageOffset[i], rms_raw, rms_current, ch_max[i], ch_min[i], (ch_max[i]+ch_min[i])/2);
+                            last_log_time[i] = xTaskGetTickCount();
+                            do_save = true;
+                            if (i == 0) {
+                                sys_nvs_save_device_status(&saved_status);
+                            }
+                        }
+                    }
+                }
+                
+                // if (do_save) {
+                //     sys_nvs_save_device_status(&saved_status);
+                // }
             } else if (ret == ESP_ERR_TIMEOUT) {
                 break;
             }

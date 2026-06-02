@@ -19,6 +19,7 @@
 
 #include "ble_mesh_core.h"        // Header công khai của component này
 #include "sys_event_queue.h"      // Header của hàng đợi sự kiện hệ thống
+#include "board_hal.h"           // Header công khai của phần cứng đặc thù
 // #include "ble_mesh_composition.h" // Để truy cập các biến model (ví dụ: onoff_server)
 
 #define TAG "BLE_MESH_CALLBACKS"
@@ -39,12 +40,6 @@ static void handle_onoff_state_change(esp_ble_mesh_model_t *model, esp_ble_mesh_
     app_event.data.onoff_set.ctx = *ctx;
     app_event.data.onoff_set.onoff_state = new_onoff;
     sys_event_queue_send(&app_event);
-
-    // 3. Publish trạng thái mới lên mạng để đồng bộ với các node khác
-    // Lưu ý: Việc publish vẫn nên được thực hiện ở đây để đảm bảo nó xảy ra
-    // ngay sau khi trạng thái logic thay đổi.
-    esp_ble_mesh_model_publish(model, ESP_BLE_MESH_MODEL_OP_GEN_ONOFF_STATUS,
-        sizeof(onoff_server.state.onoff), &onoff_server.state.onoff, ROLE_NODE);
 }
 
 static uint16_t g_node_address = ESP_BLE_MESH_ADDR_UNASSIGNED;

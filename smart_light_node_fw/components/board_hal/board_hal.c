@@ -14,7 +14,10 @@
 extern esp_err_t board_led_init(void);
 extern esp_err_t board_button_init(void);
 extern esp_err_t board_adc_init(void);
-// extern esp_err_t board_relay_init(void); // Ví dụ nếu có file board_relay.c
+
+bool log_adc1 = false;
+bool log_adc2 = false;
+bool log_adc3 = false;
 
 /**
  * @brief Khởi tạo tất cả các phần cứng đặc thù của bo mạch.
@@ -40,21 +43,14 @@ esp_err_t board_hal_init(void)
         return err;
     }
 
-    // // 3. Khởi tạo module ADC
-    // err = board_adc_init();
-    // if (err != ESP_OK) {
-    //     ESP_LOGE(TAG, "Khởi tạo module ADC thất bại!");
-    //     return err;
-    // }
+    // 3. Khởi tạo module ADC
+    err = board_adc_init();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Khởi tạo module ADC thất bại!");
+        return err;
+    }
 
     // board_adc_rms_init();
-
-    // 4. Khởi tạo các module phần cứng khác (nếu có)
-    // err = board_relay_init();
-    // if (err != ESP_OK) {
-    //     ESP_LOGE(TAG, "Khởi tạo module relay thất bại!");
-    //     return err;
-    // }
     
     ESP_LOGI(TAG, "Khởi tạo HAL thành công.");
     return ESP_OK;
