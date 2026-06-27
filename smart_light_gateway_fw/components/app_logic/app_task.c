@@ -70,11 +70,23 @@ static void app_main_task(void *arg) {
                     break;
                     
                 case EVENT_MESH_GENERIC_ONOFF_SET_ACK_RECEIVED:
-                case EVENT_MESH_GENERIC_ONOFF_GET_ACK_RECEIVED:
-                    get_data_response(event.data.onoff_set.ctx.addr, event.data.onoff_set.onoff_state, 3017, CMD_TYPE_MQTT);
-                    send_alert_history_response(HISTORY_TYPE_ONOFF, event.data.onoff_set.onoff_state, event.data.onoff_set.ctx.addr, CMD_TYPE_ALERT);
+                case EVENT_MESH_GENERIC_ONOFF_GET_ACK_RECEIVED:{
+                    uint8_t onoff_state = event.data.onoff_set.onoff_state;
+                    uint8_t history_type = HISTORY_TYPE_ONOFF_BY_APP;
+                    if (onoff_state == OFF_LED_BY_BUTTON || onoff_state == ON_LED_BY_BUTTON) {
+                        history_type = HISTORY_TYPE_ONOFF_BY_BUTTON;
+                    } else if (onoff_state == OFF_LED_BY_APP || onoff_state == ON_LED_BY_APP) {
+                        history_type = HISTORY_TYPE_ONOFF_BY_APP;
+                        onoff_state = onoff_state - 2;
+                    } else if (onoff_state == OFF_LED_BY_LEAKAGE || onoff_state == ON_LED_BY_LEAKAGE) {
+                        history_type = HISTORY_TYPE_ELECTRIC_LEAKAGE;
+                        onoff_state = onoff_state - 4;
+                    }
+                    ESP_LOGI(TAG, "Sự kiện: Nhận được ACK trạng thái On/Off: %d", event.data.onoff_set.onoff_state);
+                    // get_data_response(event.data.onoff_set.ctx.addr, event.data.onoff_set.onoff_state, 3017, CMD_TYPE_MQTT);
+                    send_alert_history_response(history_type, onoff_state, event.data.onoff_set.ctx.addr, CMD_TYPE_ALERT);
                     break;
-
+                }
                 case EVENT_MESH_VENDOR_PUBLISH_RECEIVED:
                     handle_recv_publish_status(event.data.publish_status.msg, event.data.publish_status.length, event.data.publish_status.address);
                     break;

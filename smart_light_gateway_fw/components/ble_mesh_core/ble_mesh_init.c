@@ -194,7 +194,7 @@ esp_err_t ble_mesh_core_send_onoff_set(uint16_t dest_addr, uint8_t onoff)
     esp_ble_mesh_client_common_param_t common = {0};
     esp_ble_mesh_generic_client_set_state_t set = {0};
 
-    setup_common_client_params(&common, dest_addr, ESP_BLE_MESH_MODEL_OP_GEN_ONOFF_SET);
+    setup_common_client_params(&common, dest_addr, ESP_BLE_MESH_MODEL_OP_GEN_ONOFF_SET_UNACK);
     
     set.onoff_set.op_en = false;
     set.onoff_set.onoff = onoff;

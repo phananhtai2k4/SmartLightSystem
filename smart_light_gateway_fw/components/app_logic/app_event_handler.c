@@ -77,7 +77,7 @@ void handle_recv_publish_status(uint8_t *data, uint16_t len, uint16_t address)
     decode_device_status(data, len, &status);
     // ESP_LOGI(TAG, "Decoded Device Status - OnOff: %d, Light Lux: %d, Current mA: %d", 
     //          status.onoff, status.light_lux, status.current_ma);
-    get_status_response(address, status, CMD_TYPE_MQTT);
+    // get_status_response(address, status, CMD_TYPE_MQTT);
     if (status.onoff != 404) {
         send_alert_data_response(status.light_lux, status.current_ma, address, CMD_TYPE_ALERT);
     }

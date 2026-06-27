@@ -19,6 +19,7 @@ static const char *TAG = "DEVICE_CONTROL";
 
 // Helper function to send response
 void send_response(const char *response, cmd_type_t type) {
+    vTaskDelay(pdMS_TO_TICKS(100));
     if (type == CMD_TYPE_UDP) {
         udp_service_send_broadcast1(response, strlen(response), 0);
     } else if (type == CMD_TYPE_MQTT) {
@@ -297,7 +298,7 @@ void send_alert_history_response(history_type_t history_type, uint8_t onoff, uin
     cJSON_AddNumberToObject(response, "timestamp", now);
     cJSON_AddNumberToObject(response, "address", address);
     cJSON_AddNumberToObject(response, "history_type", history_type);
-    if (history_type == HISTORY_TYPE_ONOFF) {
+    if (history_type == HISTORY_TYPE_ONOFF_BY_APP || history_type == HISTORY_TYPE_ONOFF_BY_BUTTON || history_type == HISTORY_TYPE_ELECTRIC_LEAKAGE) {
         cJSON_AddNumberToObject(response, "onoff", onoff);
     }
     char *response_str = cJSON_PrintUnformatted(response);
