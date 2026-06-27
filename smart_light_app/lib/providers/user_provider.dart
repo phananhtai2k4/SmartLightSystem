@@ -5,11 +5,13 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import '../services/auth_service.dart';
 import '../services/mqtt_service.dart';
+import '../services/notification_service.dart';
 
 class UserProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
   final MqttService _mqttService = MqttService();
   final Connectivity _connectivity = Connectivity();
+  final NotificationService _notificationService = NotificationService();
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -35,14 +37,25 @@ class UserProvider extends ChangeNotifier {
   void _listenToAuthChanges() {
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
       print('🔐 UserProvider: Auth state changed - user: ${user?.uid}');
-      if (user != null && !_isMqttConnected) {
-        // User đã đăng nhập, kết nối MQTT
-        _initMqttIfLoggedIn();
-      } else if (user == null && _isMqttConnected) {
-        // User đăng xuất, ngắt MQTT
-        _mqttService.disconnect();
-        _isMqttConnected = false;
-        notifyListeners();
+      if (user != null) {
+        // Cập nhật FCM Token & lắng nghe refresh
+        _notificationService.addTokenToUserGateways(user.uid);
+        _notificationService.listenToTokenRefresh(user.uid);
+
+        if (!_isMqttConnected) {
+          // User đã đăng nhập, kết nối MQTT
+          _initMqttIfLoggedIn();
+        }
+      } else {
+        // Ngắt lắng nghe refresh khi logout
+        _notificationService.stopListeningToTokenRefresh();
+
+        if (_isMqttConnected) {
+          // User đăng xuất, ngắt MQTT
+          _mqttService.disconnect();
+          _isMqttConnected = false;
+          notifyListeners();
+        }
       }
     });
   }
@@ -184,6 +197,12 @@ class UserProvider extends ChangeNotifier {
 
   // Xử lý Đăng xuất
   Future<void> logout() async {
+    final userId = _authService.currentUser?.uid;
+    if (userId != null) {
+      // Xóa FCM Token khỏi các gateway trước khi đăng xuất
+      await _notificationService.removeTokenFromUserGateways(userId);
+    }
+
     // Ngắt kết nối MQTT trước
     _mqttService.disconnect();
     _isMqttConnected = false;
@@ -207,6 +226,7 @@ class UserProvider extends ChangeNotifier {
   /// Dispose resources
   @override
   void dispose() {
+    _notificationService.stopListeningToTokenRefresh();
     _connectivitySubscription?.cancel();
     _authSubscription?.cancel();
     _mqttStatusSubscription?.cancel();

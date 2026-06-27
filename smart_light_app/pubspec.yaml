@@ -38,6 +38,7 @@ dependencies:
   firebase_core: ^4.9.0
   firebase_auth: ^6.5.1
   cloud_firestore: ^6.4.1
+  firebase_messaging: ^16.2.2
 
   # 3. IoT Communication (MQTT)
   mqtt_client: ^10.0.1

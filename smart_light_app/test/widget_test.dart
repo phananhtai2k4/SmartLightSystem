@@ -9,11 +9,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:smart_light_app/main.dart';
+import 'package:smart_light_app/providers/user_provider.dart';
+import 'package:smart_light_app/providers/home_provider.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+    final userProvider = UserProvider();
+    final homeProvider = HomeProvider();
+    homeProvider.setMqttService(userProvider.mqttService);
+
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(MyApp(userProvider: userProvider, homeProvider: homeProvider));
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

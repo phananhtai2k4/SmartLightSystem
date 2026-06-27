@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../constants.dart';
 import '../../services/udp_service.dart';
 import '../../services/mesh_service.dart';
@@ -478,6 +480,14 @@ class _AddGatewayProgressScreenState extends State<AddGatewayProgressScreen> {
     });
 
     try {
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      String? fcmToken;
+      try {
+        fcmToken = await FirebaseMessaging.instance.getToken();
+      } catch (e) {
+        debugPrint('🔔 Error getting FCM token on gateway save: $e');
+      }
+
       // Tạo document với ID là MAC address
       await _firestore
           .collection(AppConstants.colGateways)
@@ -485,11 +495,13 @@ class _AddGatewayProgressScreenState extends State<AddGatewayProgressScreen> {
           .set({
             'gatewayMac': _devExtAddr,
             'homeId': widget.homeId,
+            'userId': currentUserId,
             'name': 'GATEWAY_$_devExtAddr',
             'online': true,
             'topicSub': _topicSub,
             'topicPub': _topicPub,
             'topicAlert': _topicAlert,
+            'fcm_tokens': fcmToken != null ? [fcmToken] : <String>[],
             // BLE Mesh info
             'meshUnicastAddress': _meshUnicastAddress,
             'meshDeviceKey': _meshDeviceKey,
