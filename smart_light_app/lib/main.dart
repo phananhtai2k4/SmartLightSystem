@@ -8,12 +8,16 @@ import 'providers/user_provider.dart';
 import 'providers/home_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/main_screen.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   print('🚀 App starting...');
   await Firebase.initializeApp();
   print('🔥 Firebase initialized');
+
+  await NotificationService().initialize();
+  print('🔔 NotificationService initialized');
 
   // Khởi tạo UserProvider ngay từ đầu (eager) thay vì lazy
   final userProvider = UserProvider();

@@ -54,6 +54,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   firebase_database: ^12.4.1
   syncfusion_flutter_charts: ^33.2.7
+  flutter_local_notifications: ^22.0.1
 
 dev_dependencies:
   flutter_test:

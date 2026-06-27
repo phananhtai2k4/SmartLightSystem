@@ -2,14 +2,97 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../constants.dart';
 
 class NotificationService {
+  // Singleton Pattern
+  static final NotificationService _instance = NotificationService._internal();
+  factory NotificationService() => _instance;
+  NotificationService._internal();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  static final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   String? _lastToken;
   StreamSubscription<String>? _tokenRefreshSubscription;
+
+  /// Initialize notifications (FCM & Local Notifications)
+  Future<void> initialize() async {
+    // 1. Configure iOS presentation options for foreground notifications
+    await _messaging.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // 2. Initialize local notifications for Android
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+    );
+
+    await _localNotificationsPlugin.initialize(
+      settings: initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse details) {
+        debugPrint('🔔 Local notification clicked: ${details.payload}');
+      },
+    );
+
+    // Create high importance Android notification channel
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'fcm_fallback_notification_channel', // Match the channelId set in the backend
+      'Urgent Notifications',
+      description: 'Used for important alert notifications',
+      importance: Importance.max,
+      playSound: true,
+    );
+
+    final androidPlugin = _localNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+
+    await androidPlugin?.createNotificationChannel(channel);
+    
+    // Request Android 13+ permission
+    await androidPlugin?.requestNotificationsPermission();
+
+    // 3. Listen to foreground messages
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      debugPrint('🔔 Received a foreground message: ${message.messageId}');
+      _showLocalNotification(message);
+    });
+  }
+
+  void _showLocalNotification(RemoteMessage message) async {
+    try {
+      RemoteNotification? notification = message.notification;
+      if (notification == null) return;
+
+      await _localNotificationsPlugin.show(
+        id: notification.hashCode,
+        title: notification.title,
+        body: notification.body,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'fcm_fallback_notification_channel',
+            'Urgent Notifications',
+            channelDescription: 'Used for important alert notifications',
+            importance: Importance.max,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+            playSound: true,
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('🔔 Error displaying local notification: $e');
+    }
+  }
 
   /// Request notification permissions and return the current token
   Future<String?> getFcmToken() async {
