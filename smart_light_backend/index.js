@@ -22,6 +22,9 @@ try {
   console.error("Lỗi khi khởi tạo Firebase Admin SDK:", error.message);
 }
 
+const db = admin.firestore();
+const rtdb = admin.database();
+
 // Kết nối MQTT
 const options = {
   username: process.env.MQTT_USERNAME,
@@ -31,20 +34,63 @@ const client = mqtt.connect(process.env.MQTT_BROKER_URL, options);
 
 console.log("Đang cố gắng kết nối đến:", process.env.MQTT_BROKER_URL);
 
+let subscribedTopics = new Set();
+
 client.on("connect", () => {
   console.log("Đã kết nối HiveMQ");
-  client.subscribe(process.env.MQTT_TOPIC, (err) => {
-    if (err) console.error("Lỗi khi subscribe:", err);
-    else console.log("Subscribed đến topic:", process.env.MQTT_TOPIC);
-  });
+
+  // Lắng nghe snapshot từ gateways để cập nhật topic cần subscribe
+  db.collection("gateways").onSnapshot(
+    (snapshot) => {
+      const currentTopics = new Set();
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.topicAlert) {
+          currentTopics.add(data.topicAlert);
+        }
+      });
+
+      // Subscribe các topic mới
+      currentTopics.forEach((topic) => {
+        if (!subscribedTopics.has(topic)) {
+          client.subscribe(topic, (err) => {
+            if (err) {
+              console.error(`Lỗi khi subscribe topic ${topic}:`, err);
+            } else {
+              console.log(`Subscribed đến topic: ${topic}`);
+              subscribedTopics.add(topic);
+            }
+          });
+        }
+      });
+
+      // Unsubscribe các topic không còn sử dụng
+      subscribedTopics.forEach((topic) => {
+        if (!currentTopics.has(topic)) {
+          client.unsubscribe(topic, (err) => {
+            if (err) {
+              console.error(`Lỗi khi unsubscribe topic ${topic}:`, err);
+            } else {
+              console.log(`Unsubscribed topic: ${topic}`);
+              subscribedTopics.delete(topic);
+            }
+          });
+        }
+      });
+    },
+    (error) => {
+      console.error(
+        "Lỗi khi lắng nghe changes trên collection gateways:",
+        error,
+      );
+    },
+  );
 });
 
 client.on("error", (err) => {
   console.error("Lỗi khi kết nối MQTT:", err.message);
 });
-
-const db = admin.firestore();
-const rtdb = admin.database();
 
 const nodeMacCache = {};
 
@@ -348,6 +394,65 @@ client.on("message", async (topic, message) => {
             onoff: isOn,
           });
         console.log(`Đã lưu history của Node ${nodeMac}`);
+
+        // 4. Bắn thông báo FCM cho điện thoại nếu phát hiện dòng rò (history_type = 2)
+        if (history_type === 2) {
+          try {
+            const nodeDoc = await db.collection("nodes").doc(nodeMac).get();
+            if (nodeDoc.exists) {
+              const nodeData = nodeDoc.data();
+              const deviceName = nodeData.name || "đèn";
+              const gatewayMac = nodeData.gatewayMac || devExtAddr;
+
+              const gatewayDoc = await db.collection("gateways").doc(String(gatewayMac)).get();
+              if (gatewayDoc.exists) {
+                const gatewayData = gatewayDoc.data();
+                const fcmTokens = gatewayData.fcm_tokens || [];
+
+                if (Array.isArray(fcmTokens) && fcmTokens.length > 0) {
+                  console.log(`Đang gửi thông báo dòng rò cho thiết bị ${deviceName} tới các fcm_tokens của Gateway ${gatewayMac}...`);
+                  const sendPromises = fcmTokens.map((fcmToken) => {
+                    const message = {
+                      notification: {
+                        title: '🚨 CẢNH BÁO NGUY HIỂM 🚨',
+                        body: `Phát hiện DÒNG RÒ tại thiết bị ${deviceName}! Hệ thống đã ngắt điện.`,
+                        imageUrl: "https://media.istockphoto.com/id/1165326519/vector/electricity-badge.jpg?s=170667a&w=0&k=20&c=mA9qI1Iq4074rgVuNN5kvm6Pr0ROzZPgSrYWnaYxGRs="
+                      },// BẮT BUỘC BỔ SUNG: Cấu hình riêng cho Android hiển thị khẩn cấp
+                      android: {
+                        priority: 'high', // Bắn thông báo ngay lập tức, không delay để tiết kiệm pin
+                        notification: {
+                          channelId: 'fcm_fallback_notification_channel', // Kênh mặc định mà Firebase SDK tạo ra trong Flutter
+                          sound: 'default', // Bật tiếng chuông mặc định của máy
+                          priority: 'max', // Đảm bảo hiển thị thành banner nổi lên đầu màn hình (Heads-up)
+                          visibility: 'public' // Hiển thị đầy đủ nội dung ngay cả trên màn hình khóa
+                        }
+                      },
+                      token: fcmToken
+                    };
+
+                    // Gửi bản tin đi
+                    return admin.messaging().send(message)
+                      .then((response) => {
+                        console.log(`Đã gửi thông báo FCM thành công đến token ${fcmToken}:`, response);
+                      })
+                      .catch((error) => {
+                        console.error(`Lỗi khi gửi thông báo FCM đến token ${fcmToken}:`, error);
+                      });
+                  });
+                  await Promise.all(sendPromises);
+                } else {
+                  console.log(`Gateway ${gatewayMac} không có fcm_tokens nào.`);
+                }
+              } else {
+                console.log(`Không tìm thấy gateway với MAC ${gatewayMac} để gửi thông báo FCM.`);
+              }
+            } else {
+              console.log(`Không tìm thấy node document ${nodeMac} trong Firestore để lấy thông tin FCM.`);
+            }
+          } catch (fcmError) {
+            console.error("Lỗi trong quá trình gửi thông báo FCM dòng rò:", fcmError);
+          }
+        }
       } else {
         console.log(
           `Không tìm thấy node với Address ${address} thuộc Gateway ${devExtAddr}`,
