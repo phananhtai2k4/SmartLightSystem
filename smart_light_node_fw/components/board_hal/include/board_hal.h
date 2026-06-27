@@ -13,8 +13,8 @@
 #include "esp_log.h"
 #include "esp_err.h"
 
-// #define BUTTON_GPIO     22
-#define BUTTON_GPIO     0
+#define BUTTON_GPIO     22
+// #define BUTTON_GPIO     0
 
 // Định nghĩa các chân GPIO cho mỗi đèn LED chức năng
 #define STATUS_LED_GPIO         GPIO_NUM_4
@@ -54,6 +54,8 @@ typedef enum {
     ON_LED_BY_BUTTON = 1,       // bật từ nút cứng
     OFF_LED_BY_APP = 2,         // tắt từ ứng dụng
     ON_LED_BY_APP = 3,          // bật từ ứng dụng
+    OFF_LED_BY_LEAKAGE = 4,     // tắt từ dòng rò
+    ON_LED_BY_LEAKAGE = 5,      // bật từ dòng rò
 } board_led_state_get_t;
 
 /**

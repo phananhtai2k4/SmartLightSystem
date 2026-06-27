@@ -15,6 +15,7 @@
 #include "esp_adc/adc_continuous.h"
 #include "sys_nvs.h"
 #include "board_hal.h"
+#include "sys_event_queue.h"
 
 #define EXAMPLE_ADC_UNIT                    ADC_UNIT_1
 #define _EXAMPLE_ADC_UNIT_STR(unit)         #unit
@@ -38,6 +39,7 @@
 #define RMS_CALIBRATION_FACTOR              0.00054317
 static adc_channel_t channel[2] = {ADC_CHANNEL_4, ADC_CHANNEL_7}; // ADC_CHANNEL_4 = GPIO32, ADC_CHANNEL_7 = GPIO35
 static TaskHandle_t s_task_handle;
+static uint32_t last_leakage_time = 0;
 TaskHandle_t adc_rms_handle = NULL;
 static const char *TAG = "BOARD_ADC_RMS";
 
@@ -175,13 +177,28 @@ void board_adc_rms_task(void *pvParameters)
 
                         // In log sau mỗi 500ms
                         static uint32_t last_log_time[2] = {0, 0};
-                        if (xTaskGetTickCount() - last_log_time[i] > pdMS_TO_TICKS(500) && ((log_adc2 && i == 0) || (log_adc3 && i == 1))) {
-                            ESP_LOGI(TAG, "CH%d - ret_num: %ld, Offset: %.2f, RMS Raw: %.2f, Current: %.4f A, Max: %.2f, Min: %.2f, avg: %.2f", 
-                                     channel[i], ret_num, ch_voltageOffset[i], rms_raw, rms_current, ch_max[i], ch_min[i], (ch_max[i]+ch_min[i])/2);
+                        if (xTaskGetTickCount() - last_log_time[i] > pdMS_TO_TICKS(500)) {
+                            if ((log_adc2 && i == 0) || (log_adc3 && i == 1)) {
+                                ESP_LOGI(TAG, "CH%d - ret_num: %ld, Offset: %.2f, RMS Raw: %.2f, Current: %.4f A, Max: %.2f, Min: %.2f, avg: %.2f", 
+                                         channel[i], ret_num, ch_voltageOffset[i], rms_raw, rms_current, ch_max[i], ch_min[i], (ch_max[i]+ch_min[i])/2);
+                            }
                             last_log_time[i] = xTaskGetTickCount();
                             do_save = true;
                             if (i == 0) {
                                 sys_nvs_save_device_status(&saved_status);
+                            } else if (i == 1 && saved_status.onoff == 1) { //tôi muốn bị rò trong 3 giây mới gửi event
+                                // if (rms_current > 0) {
+                                if (rms_current >= 0) {
+                                    if (last_leakage_time == 0) {
+                                        last_leakage_time = xTaskGetTickCount();
+                                    }
+                                    if (xTaskGetTickCount() - last_leakage_time > pdMS_TO_TICKS(3000)) {
+                                        app_event_t evt = { .type = EVENT_LEAKAGE_CURRENT_DETECTED };
+                                        sys_event_queue_send(&evt);
+                                    }
+                                } else {
+                                    last_leakage_time = 0;
+                                }
                             }
                         }
                     }

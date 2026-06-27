@@ -278,6 +278,34 @@ esp_err_t ble_mesh_core_publish_onoff_status_by_app(void)
     return err;
 }
 
+esp_err_t ble_mesh_core_publish_onoff_status_by_leakage(void)
+{
+    // Lấy model handle từ biến 'onoff_server' đã được khai báo trong composition.c
+    extern esp_ble_mesh_gen_onoff_srv_t onoff_server;
+
+    // Trạng thái onoff được lưu trong srv->state.onoff
+    uint8_t current_state = onoff_server.state.onoff;
+    if (current_state == 0) {
+        current_state = OFF_LED_BY_LEAKAGE; // Tắt
+    } else {
+        current_state = ON_LED_BY_LEAKAGE; // Bật
+    }
+
+    // Publish tin nhắn status
+    esp_err_t err = esp_ble_mesh_model_publish(onoff_server.model, 
+                                               ESP_BLE_MESH_MODEL_OP_GEN_ONOFF_STATUS,
+                                               sizeof(current_state), 
+                                               &current_state, 
+                                               ROLE_NODE);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Không thể publish OnOff Status (err %d)", err);
+    } else {
+        ESP_LOGI(TAG, "Đã publish OnOff Status: %d", current_state);
+    }
+
+    return err;
+}
+
 // esp_err_t esp_ble_mesh_node_local_reset(void)
 esp_err_t ble_mesh_core_node_local_reset(void)
 {

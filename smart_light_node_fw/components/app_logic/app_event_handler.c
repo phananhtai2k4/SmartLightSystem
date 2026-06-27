@@ -56,6 +56,16 @@ static void handle_button_press_event(void)
     vTaskDelay(50 / portTICK_PERIOD_MS);
 }
 
+static void handle_leakage_current_detected_event(void)
+{
+    ESP_LOGI(TAG, "Sự kiện: Phát hiện dòng rò.");
+    board_led_set_state(RELAY_STATE_LED, LED_STATE_OFF);
+    onoff_server.state.onoff = 0;
+    vTaskDelay(50 / portTICK_PERIOD_MS);
+    ble_mesh_core_publish_onoff_status_by_leakage();
+    vTaskDelay(50 / portTICK_PERIOD_MS);
+}
+
 
 /**
  * @brief Hàm điều phối chính, xử lý tất cả các sự kiện của ứng dụng.
@@ -115,6 +125,11 @@ void app_event_handler(const app_event_t *event)
     case EVENT_BUTTON_HOLD_5S:
         ESP_LOGI(TAG, "Sự kiện: Nhấn giữ nút 5 giây");
         // Thực hiện chức năng khác nếu cần
+        break;
+
+    case EVENT_LEAKAGE_CURRENT_DETECTED:
+        ESP_LOGI(TAG, "Sự kiện: Phát hiện dòng rò.");
+        handle_leakage_current_detected_event();
         break;
         
     default:

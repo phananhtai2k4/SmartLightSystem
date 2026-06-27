@@ -34,7 +34,8 @@ typedef enum {
 
     // --- Các sự kiện hệ thống khác ---
     EVENT_SYSTEM_STARTUP,
-
+    //phát hiện dòng rò
+    EVENT_LEAKAGE_CURRENT_DETECTED,
 } app_event_type_t;
 
 // --- Định nghĩa cấu trúc dữ liệu đi kèm cho từng loại sự kiện ---

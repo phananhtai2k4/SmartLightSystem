@@ -19,7 +19,7 @@
  */
 
 // Định nghĩa chu kỳ nhấp nháy (tính bằng mili-giây)
-#define BLINK_FAST_PERIOD_MS    100
+#define BLINK_FAST_PERIOD_MS    200
 #define BLINK_SLOW_PERIOD_MS    500
 
 /*
