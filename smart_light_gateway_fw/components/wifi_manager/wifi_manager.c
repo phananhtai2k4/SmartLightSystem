@@ -27,7 +27,7 @@
 static const char *TAG = "WIFI_MANAGER";
 static char *s_ssid = NULL; // Biến toàn cục để lưu SSID
 static char *s_pass = NULL; // Biến toàn cục để lưu mật khẩu
-#define WIFI_MAXIMUM_RETRY  5 // Giới hạn số lần thử lại
+#define WIFI_MAXIMUM_RETRY  1000 // Giới hạn số lần thử lại
 #define WIFI_AP_PASS      ""
 /* FreeRTOS event group để báo hiệu kết nối */
 static EventGroupHandle_t s_wifi_event_group;

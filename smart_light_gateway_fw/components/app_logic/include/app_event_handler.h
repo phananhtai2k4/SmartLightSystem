@@ -6,6 +6,8 @@
 #include "esp_err.h"
 #include "sys_event_queue.h"
 
+#define IS_COMPLEX_NODE 1
+
 /*
  * @brief Các trạng thái nhận được của đèn LED.
  */
