@@ -404,8 +404,8 @@ esp_err_t ble_mesh_core_publish_current_status(void)
 {
     uint8_t payload[20];
     //random dữ liệu để test
-    saved_status.current_ma = random() % 1000; // 0-999 mA
-    saved_status.light_lux = random() % 1000; // 0-999 lux
+    // saved_status.current_ma = random() % 1000; // 0-999 mA
+    // saved_status.light_lux = random() % 1000; // 0-999 lux
     uint8_t payload_len = encode_device_status(&saved_status, payload);
 
     ESP_LOGI(TAG, "Publishing current status: onoff=%d, lux=%d, current=%dmA",
