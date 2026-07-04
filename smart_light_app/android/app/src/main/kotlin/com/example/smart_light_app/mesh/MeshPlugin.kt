@@ -399,27 +399,47 @@ class MeshPlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
         
         // Initialize managers
         ensureMeshManagerInitialized()
-        val bleManager = ensureBleMeshManager()
         
         sendProvisioningEvent(mapOf("status" to "connecting"))
         
-        // Connect using Nordic BLE Library - this handles all GATT complexity!
-        bleManager.connect(device)
-            .retry(3, 200)
-            .useAutoConnect(false)
-            .timeout(30000)
-            .done { connectedDevice ->
-                Log.d(TAG, "Connected to device: ${connectedDevice.address}")
-                sendProvisioningEvent(mapOf("status" to "connected"))
-            }
-            .fail { failedDevice, status ->
-                Log.e(TAG, "Connection failed: $status")
+        // Connect using a coroutine to reset manager and add cooldown delay after stopScan
+        scope.launch {
+            try {
+                // Disconnect and reset any existing BLE manager to avoid state conflict
+                bleMeshManager?.disconnect()?.enqueue()
+                bleMeshManager = null
+                
+                // Allow Bluetooth stack to settle after scan stops
+                delay(600)
+                
+                val bleManager = ensureBleMeshManager()
+                
+                Log.d(TAG, "Connecting to device: ${device.address}")
+                // Connect using Nordic BLE Library - this handles all GATT complexity!
+                bleManager.connect(device)
+                    .retry(3, 200)
+                    .useAutoConnect(false)
+                    .timeout(30000)
+                    .done { connectedDevice ->
+                        Log.d(TAG, "Connected to device: ${connectedDevice.address}")
+                        sendProvisioningEvent(mapOf("status" to "connected"))
+                    }
+                    .fail { failedDevice, status ->
+                        Log.e(TAG, "Connection failed: $status")
+                        sendProvisioningEvent(mapOf(
+                            "status" to "failed",
+                            "error" to "Connection failed with status: $status"
+                        ))
+                    }
+                    .enqueue()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in connection coroutine: ${e.message}")
                 sendProvisioningEvent(mapOf(
                     "status" to "failed",
-                    "error" to "Connection failed with status: $status"
+                    "error" to "Connection setup failed: ${e.message}"
                 ))
             }
-            .enqueue()
+        }
         
         result.success(true)
     }
