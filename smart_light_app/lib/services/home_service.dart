@@ -304,9 +304,31 @@ class HomeService {
     });
   }
 
-  /// Xóa node
+  /// Helper để xóa các documents trong một subcollection
+  Future<void> _deleteSubcollection(DocumentReference parentRef, String subcollectionName) async {
+    final snapshot = await parentRef.collection(subcollectionName).get();
+    if (snapshot.docs.isNotEmpty) {
+      final batch = _firestore.batch();
+      for (var doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    }
+  }
+
+  /// Xóa node và các subcollections của nó triệt để
   Future<void> deleteNode(String nodeMac) async {
-    await _firestore.collection(AppConstants.colNodes).doc(nodeMac).delete();
+    final nodeRef = _firestore.collection(AppConstants.colNodes).doc(nodeMac);
+    
+    // Dọn dẹp các subcollections con để tránh dữ liệu rác
+    await _deleteSubcollection(nodeRef, 'events');
+    await _deleteSubcollection(nodeRef, 'measurements_raw');
+    await _deleteSubcollection(nodeRef, 'measurements_10m');
+    await _deleteSubcollection(nodeRef, 'measurements_1h');
+    await _deleteSubcollection(nodeRef, 'measurements_4h');
+    
+    // Xóa document gốc
+    await nodeRef.delete();
   }
 
   /// Lấy nodes theo gateway
