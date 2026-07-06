@@ -33,11 +33,6 @@ void send_response(const char *response, cmd_type_t type) {
     }
 }
 
-static int handle_set_change_mode(cJSON *value, cmd_type_t type) {
-    ESP_LOGI(TAG, "Handle set change mode");
-    // TODO: Implement
-    return 0;
-}
 static int handle_set_device_config(cJSON *value, cmd_type_t type) {
     ESP_LOGI(TAG, "Handle set device config");
     
@@ -120,12 +115,14 @@ static int handle_set_device_config(cJSON *value, cmd_type_t type) {
     if (response_str) {
         ESP_LOGI(TAG, "Sending response: %s", response_str);
         send_response(response_str, type);
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+        send_response(response_str, type);
         cJSON_free(response_str);
     }
     cJSON_Delete(response);
     //resetchip
-    ESP_LOGI(TAG, "Device config updated, restarting device...");
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    ESP_LOGI(TAG, "Device config updated, restarting device in 2 seconds...");
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
     esp_restart();
     
     return 0;
@@ -169,17 +166,6 @@ void send_get_device_id() {
     cJSON_Delete(response);
     
     return ;
-}
-
-static int handle_get_status(cJSON *value, cmd_type_t type) {
-    ESP_LOGI(TAG, "Handle get status");
-    // TODO: Implement
-    return 0;
-}
-static int handle_reset(cJSON *value, cmd_type_t type) {
-    ESP_LOGI(TAG, "Handle reset");
-    // TODO: Implement
-    return 0;
 }
 
 static int handle_set_data(cJSON *value, cmd_type_t type) {
@@ -290,7 +276,7 @@ void send_alert_node_online_response(uint16_t address, bool online, cmd_type_t t
 
 void send_alert_history_response(history_type_t history_type, uint8_t onoff, uint16_t address, cmd_type_t type){
     cJSON *response = cJSON_CreateObject();
-    cJSON_AddStringToObject(response, "name", "CmdAlertHistory");
+    cJSON_AddStringToObject(response, "name", CMD_ALERT_HISTORY);
     cJSON_AddStringToObject(response, "devT", CONFIG_DEVICE_TYPE);
 
     cJSON_AddStringToObject(response, "devExtAddr", device_get_mac_str());
@@ -312,7 +298,7 @@ void send_alert_history_response(history_type_t history_type, uint8_t onoff, uin
 
 void send_alert_data_response(uint16_t light_lux, uint16_t current_ma, uint16_t address, cmd_type_t type){
     cJSON *response = cJSON_CreateObject();
-    cJSON_AddStringToObject(response, "name", "CmdAlertData");
+    cJSON_AddStringToObject(response, "name", CMD_ALERT_DATA);
     cJSON_AddStringToObject(response, "devT", CONFIG_DEVICE_TYPE);
     cJSON_AddStringToObject(response, "devExtAddr", device_get_mac_str());
     time_t now = time_manager_get_timestamp();
@@ -357,16 +343,10 @@ int device_control_cmd_handle(const char* msg, cmd_type_t msgType) {
         ESP_LOGW(TAG, "Missing or invalid 'value' object");
     }
     if (0) {}
-    else if (strcmp(pJsName->valuestring, CMD_SET_CHANGE_MODE) == 0)
-        ret = handle_set_change_mode(pJsValue, msgType);
     else if (strcmp(pJsName->valuestring, CMD_SET_DEVICE_CONFIG) == 0)
         ret = handle_set_device_config(pJsValue, msgType);
     else if (strcmp(pJsName->valuestring, CMD_GET_DEVICE_ID) == 0)
         ret = handle_get_device_id(pJsValue, msgType);
-    else if (strcmp(pJsName->valuestring, CMD_GET_DEVICE_STATUS) == 0)
-        ret = handle_get_status(pJsValue, msgType);
-    else if (strcmp(pJsName->valuestring, CMD_RESET) == 0)
-        ret = handle_reset(pJsValue, msgType);
     else if (strcmp(pJsName->valuestring, CMD_SET_DATA) == 0)
         ret = handle_set_data(pJsValue, msgType);
     else if (strcmp(pJsName->valuestring, CMD_GET_DATA) == 0)

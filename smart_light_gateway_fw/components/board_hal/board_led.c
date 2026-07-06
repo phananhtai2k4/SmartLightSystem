@@ -8,7 +8,7 @@
 #include "device_control.h"
 
 static const char *TAG = "LED_SERVICE";
-
+static uint8_t flag_last_noti_join_mesh = 0;
 // LED timing constants (in multiples of update calls)
 #define BLINK_FAST_PERIOD   10   // 100ms (với update mỗi 10ms)
 #define BLINK_SLOW_PERIOD   50   // 500ms (với update mỗi 10ms)
@@ -119,11 +119,19 @@ void led_service_update(void)
     }
 
     if (mqtt_connected && boot_flag == BOOT_FLAG_ADDING_GATEWAY_MANUAL) {
+        flag_last_noti_join_mesh = 1;
         count++;
         if (count >= 100) { // Mỗi 1 giây (với update mỗi 10ms)
             count = 0;
             send_get_device_id();
         }
+    } else if (flag_last_noti_join_mesh) {
+        if(count > 700) {
+            flag_last_noti_join_mesh = 0;
+            count = 0;
+            send_alert_online_response(true, CMD_TYPE_ALERT);
+        }
+        count++;
     }
     
     switch (g_led_control.operation) {

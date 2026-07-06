@@ -19,23 +19,18 @@ typedef enum {
     HISTORY_TYPE_ONOFF_BY_APP = 0,
     HISTORY_TYPE_ONOFF_BY_BUTTON = 1,
     HISTORY_TYPE_ELECTRIC_LEAKAGE = 2,
-    HISTORY_TYPE_OVERLOAD = 3,
-    HISTORY_TYPE_SHORT_CIRCUIT = 4,
 } history_type_t;
 
 #define CMD_SET_DEVICE_CONFIG    "CmdSetDeviceConfig"
 #define CMD_GET_DEVICE_ID        "CmdGetDeviceID"
-#define CMD_GET_DEVICE_STATUS    "CmdGetStatus"
 #define CMD_GET_DATA             "CmdGetData"
 #define CMD_SET_DATA             "CmdSetData"
 #define CMD_GET_STATUS           "CmdGetStatus"
-#define CMD_SET_STATUS           "CmdSetStatus"
-#define CMD_RESET                "CmdReset"
-#define CMD_SET_CHANGE_MODE      "CmdSetChangeMode"
 #define CMD_GET_WIFI_INFO        "CmdGetWifiInfo"
 #define CMD_ALERT_ONLINE         "CmdAlertOnline"
 #define CMD_ALERT_NODE_ONLINE    "CmdAlertNodeOnline"
 #define CMD_ALERT_HISTORY        "CmdAlertHistory"
+#define CMD_ALERT_DATA           "CmdAlertData"
 
 /**
  * @brief Khởi tạo module điều khiển thiết bị.
