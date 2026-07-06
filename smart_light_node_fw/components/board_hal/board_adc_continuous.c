@@ -169,7 +169,7 @@ void board_adc_rms_task(void *pvParameters)
                 for (int i = 0; i < 2; i++) {
                     if (ch_valid_count[i] > 0) {
                         double rms_raw = sqrt(ch_sq_sum[i] / ch_valid_count[i]);
-                        double rms_current = (rms_raw * RMS_CALIBRATION_FACTOR > 0.04) ? (rms_raw * RMS_CALIBRATION_FACTOR) : 0.0;
+                        double rms_current = (rms_raw * RMS_CALIBRATION_FACTOR > 0.001) ? (rms_raw * RMS_CALIBRATION_FACTOR) : 0.0;
                         
                         if (i == 0) {
                             saved_status.current_ma = (uint16_t)(rms_current * 1000); // Lưu giá trị RMS của kênh đầu tiên
@@ -188,7 +188,7 @@ void board_adc_rms_task(void *pvParameters)
                                 sys_nvs_save_device_status(&saved_status);
                             } else if (i == 1) { //tôi muốn bị rò trong 3 giây mới gửi event
                                 // if (rms_current > 0) {
-                                if (rms_current >= 0 && saved_status.onoff == 1) {
+                                if (rms_current >= 0.04 && saved_status.onoff == 1) {
                                     if (last_leakage_time == 0) {
                                         last_leakage_time = xTaskGetTickCount();
                                     }
@@ -219,8 +219,10 @@ void board_adc_rms_task(void *pvParameters)
 }
 void board_adc_rms_init(void)
 {
+    #if COMPLEX_NODE
     ESP_LOGI(TAG, "Creating ADC RMS Task...");
     xTaskCreatePinnedToCore(board_adc_rms_task, "adc_rms_task", 4096 * 2*3, NULL, 5, &adc_rms_handle, 1);
+    #endif
 }
 
 void board_adc_rms_deinit(void)

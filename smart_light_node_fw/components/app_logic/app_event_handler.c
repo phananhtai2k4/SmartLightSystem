@@ -111,9 +111,11 @@ void app_event_handler(const app_event_t *event)
     // Thêm các case khác ở đây, ví dụ:
     case EVENT_BUTTON_HOLD_3S:
         ESP_LOGI(TAG, "Sự kiện: Nhấn giữ nút 3 giây");
+        #if COMPLEX_NODE
         board_adc_rms_deinit();
         vTaskDelay(500 / portTICK_PERIOD_MS);
         ESP_LOGI(TAG, "deinit ADC RMS xong");
+        #endif
         board_adc_deinit();
         vTaskDelay(500 / portTICK_PERIOD_MS);
         ESP_LOGI(TAG, "deinit ADC xong");

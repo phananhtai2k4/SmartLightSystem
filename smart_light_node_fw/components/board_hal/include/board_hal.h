@@ -13,6 +13,8 @@
 #include "esp_log.h"
 #include "esp_err.h"
 
+#define COMPLEX_NODE 0
+
 #define BUTTON_GPIO     22
 // #define BUTTON_GPIO     0
 

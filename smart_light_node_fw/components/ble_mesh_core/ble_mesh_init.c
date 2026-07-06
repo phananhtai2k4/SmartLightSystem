@@ -390,16 +390,6 @@ esp_err_t ble_mesh_core_send_vendor_response(const esp_ble_mesh_msg_ctx_t *ctx,
     return err;
 }
 
-esp_err_t ble_mesh_core_handle_ssw_get_data(const esp_ble_mesh_msg_ctx_t *ctx)
-{
-    uint8_t payload[20];
-    uint8_t payload_len = encode_device_status(&saved_status, payload);
-
-    //Gửi phản hồi với opcode SSW Get Data Status
-    return ble_mesh_core_send_vendor_response(ctx, MESH_VND_OP_SSW_GET_DATA_STATUS, payload, payload_len);
-}
-
-//hàm chủ động publish trạng thái hiện tại của thiết bị dựa vào hàm esp_ble_mesh_model_publish(esp_ble_mesh_model_t *model, uint32_t opcode, uint16_t length, uint8_t *data, esp_ble_mesh_dev_role_t device_role)
 esp_err_t ble_mesh_core_publish_current_status(void)
 {
     uint8_t payload[20];
