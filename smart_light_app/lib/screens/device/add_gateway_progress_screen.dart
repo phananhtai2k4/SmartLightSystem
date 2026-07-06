@@ -186,20 +186,34 @@ class _AddGatewayProgressScreenState extends State<AddGatewayProgressScreen> {
     _topicPub = 'smartLight/pub/$_devExtAddr/';
     _topicAlert = 'smartLight/alert/$_devExtAddr/';
 
-    // Gửi config
-    _udpService.sendDeviceConfig(
-      devT: _devT!,
-      devExtAddr: _devExtAddr!,
-      wifiSsid: widget.wifiSsid,
-      wifiPass: widget.wifiPassword,
-      mqttUser: AppConstants.mqttUser,
-      mqttPass: AppConstants.mqttPass,
-      mqttUrl: 'mqtts://${AppConstants.mqttHost}:${AppConstants.mqttPort}',
-    );
+    final sendConfigFn = () {
+      _udpService.sendDeviceConfig(
+        devT: _devT!,
+        devExtAddr: _devExtAddr!,
+        wifiSsid: widget.wifiSsid,
+        wifiPass: widget.wifiPassword,
+        mqttUser: AppConstants.mqttUser,
+        mqttPass: AppConstants.mqttPass,
+        mqttUrl: 'mqtts://${AppConstants.mqttHost}:${AppConstants.mqttPort}',
+      );
+    };
+
+    // Gửi config lần đầu
+    sendConfigFn();
+
+    // Định kỳ gửi lại mỗi 2 giây để phòng thất thoát gói tin UDP
+    _broadcastTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (_currentState == _AddGatewayState.sendingConfig) {
+        sendConfigFn();
+      } else {
+        timer.cancel();
+      }
+    });
 
     // Timeout cho config
     _timeoutTimer = Timer(const Duration(seconds: 30), () {
       if (_currentState == _AddGatewayState.sendingConfig) {
+        _broadcastTimer?.cancel();
         _setError('Gateway không phản hồi. Vui lòng thử lại.');
       }
     });
@@ -207,6 +221,7 @@ class _AddGatewayProgressScreenState extends State<AddGatewayProgressScreen> {
 
   /// Xử lý xác nhận config từ Gateway
   void _handleConfigConfirmation(Map<String, dynamic> message) {
+    _broadcastTimer?.cancel();
     _timeoutTimer?.cancel();
 
     // Kiểm tra thông tin config có đúng không
