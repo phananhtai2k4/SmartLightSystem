@@ -97,7 +97,7 @@ const nodeMacCache = {};
 async function findNodeByAddress(gatewayMac, meshAddress) {
   const cacheKey = `${gatewayMac}_${meshAddress}`;
   if (nodeMacCache[cacheKey]) {
-    return nodeMacCache[cacheKey]; // Lấy thẳng từ RAM, 0 tốn read Firestore
+    return nodeMacCache[cacheKey]; // Lấy thẳng từ RAM
   }
 
   const nodesRef = db.collection("nodes");
@@ -157,7 +157,6 @@ client.on("message", async (topic, message) => {
 
         // 2. Gom nhóm Cập nhật Firestore measurements
         const date = new Date(timestamp * 1000);
-        // Reset giây và mili giây để tạo khoá phút
         const minuteDate = new Date(date);
         minuteDate.setSeconds(0, 0);
 
@@ -193,7 +192,7 @@ client.on("message", async (topic, message) => {
           };
         } else {
           if (nodeAggBuffer[nodeMac].id10m !== id10m) {
-            // Chuyển sang khung 10 phút mới -> Ghi aggregates của khung cũ
+            // Chuyển sang khung 10 phút mới
             const prevAgg = nodeAggBuffer[nodeMac];
 
             const hour4 = Math.floor(prevAgg.fHours / 4) * 4;
@@ -261,7 +260,7 @@ client.on("message", async (topic, message) => {
                   const exCount = existing.count || 0;
                   const newCount = exCount + countA;
 
-                  // Tính toán lại tổng dựa trên trung bình cũ (vì đã loại bỏ trường sum_light, sum_current)
+                  // Tính toán lại tổng dựa trên trung bình cũ
                   const exSumLight = (existing.avg_light || 0) * exCount;
                   const exSumCurrent = (existing.avg_current || 0) * exCount;
 
@@ -319,7 +318,7 @@ client.on("message", async (topic, message) => {
           };
         } else {
           if (nodeDataBuffer[nodeMac].minuteId !== minuteId) {
-            // Cùng node nhưng sang phút mới -> Đẩy toàn bộ dữ liệu của phút trước lên Firestore
+            // Cùng node nhưng sang phút mới thì đẩy toàn bộ dữ liệu của phút trước lên Firestore
             const prevData = nodeDataBuffer[nodeMac];
 
             const firestoreMinuteDate = prevData.minuteDate;
@@ -331,7 +330,7 @@ client.on("message", async (topic, message) => {
               .collection("measurements_raw")
               .doc(prevData.minuteId);
 
-            // Ghi RAW mỗi phút (Sử dụng set có merge, tránh 100% lệnh đọc)
+            // Ghi RAW mỗi phút
             rawRef
               .set(
                 {
@@ -352,7 +351,7 @@ client.on("message", async (topic, message) => {
               data: [newData],
             };
           } else {
-            // Cùng phút -> Nạp tiếp vào buffer
+            // Cùng phút thì nạp tiếp vào buffer
             nodeDataBuffer[nodeMac].data.push(newData);
           }
         }
@@ -417,13 +416,13 @@ client.on("message", async (topic, message) => {
                         title: '🚨 CẢNH BÁO NGUY HIỂM 🚨',
                         body: `Phát hiện DÒNG RÒ tại thiết bị ${deviceName}! Hệ thống đã ngắt điện.`,
                         imageUrl: "https://media.istockphoto.com/id/1165326519/vector/electricity-badge.jpg?s=170667a&w=0&k=20&c=mA9qI1Iq4074rgVuNN5kvm6Pr0ROzZPgSrYWnaYxGRs="
-                      },// BẮT BUỘC BỔ SUNG: Cấu hình riêng cho Android hiển thị khẩn cấp
+                      },
                       android: {
-                        priority: 'high', // Bắn thông báo ngay lập tức, không delay để tiết kiệm pin
+                        priority: 'high', // Bắn thông báo ngay lập tức
                         notification: {
                           channelId: 'fcm_fallback_notification_channel', // Kênh mặc định mà Firebase SDK tạo ra trong Flutter
                           sound: 'default', // Bật tiếng chuông mặc định của máy
-                          priority: 'max', // Đảm bảo hiển thị thành banner nổi lên đầu màn hình (Heads-up)
+                          priority: 'max', // Đảm bảo hiển thị thành banner nổi lên đầu màn hình
                           visibility: 'public' // Hiển thị đầy đủ nội dung ngay cả trên màn hình khóa
                         }
                       },
