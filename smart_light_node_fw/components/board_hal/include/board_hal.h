@@ -13,12 +13,11 @@
 #include "esp_log.h"
 #include "esp_err.h"
 
-#define COMPLEX_NODE 0
+#define COMPLEX_NODE 1
 
 #define BUTTON_GPIO     22
 // #define BUTTON_GPIO     0
 
-// Định nghĩa các chân GPIO cho mỗi đèn LED chức năng
 #define STATUS_LED_GPIO         GPIO_NUM_4
 #define RELAY_STATE_LED_GPIO    GPIO_NUM_2
 

@@ -216,5 +216,4 @@ void cmd_test_register_cmds(void)
     _register_test_cmd_on();
     _register_test_cmd_off();
     _register_log_adc_cmd();
-    // Gọi các hàm đăng ký lệnh khác ở đây nếu có
 }

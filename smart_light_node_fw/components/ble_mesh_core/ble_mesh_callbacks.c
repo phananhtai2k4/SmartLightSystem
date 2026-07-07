@@ -32,10 +32,8 @@
  */
 static void handle_onoff_state_change(esp_ble_mesh_model_t *model, esp_ble_mesh_msg_ctx_t *ctx, uint8_t new_onoff)
 {
-    // 1. Cập nhật trạng thái logic của model
     onoff_server.state.onoff = new_onoff;
 
-    // 2. Đẩy sự kiện đến app_logic để xử lý nghiệp vụ (bật/tắt đèn, lưu NVS)
     app_event_t app_event = { .type = EVENT_MESH_GENERIC_ONOFF_SET_RECEIVED };
     app_event.data.onoff_set.ctx = *ctx;
     app_event.data.onoff_set.onoff_state = new_onoff;
@@ -76,11 +74,7 @@ void ble_mesh_provisioning_cb(esp_ble_mesh_prov_cb_event_t event,
             param->node_prov_complete.flags,
             param->node_prov_complete.iv_index);
             g_node_address = param->node_prov_complete.addr;
-
-        // Provisioning đã hoàn tất, gửi sự kiện này đến lớp logic ứng dụng
         app_event_t app_event = { .type = EVENT_MESH_PROV_COMPLETE };
-        // Có thể điền thêm dữ liệu vào sự kiện nếu cần
-        // event.data.prov_complete.addr = param->node_prov_complete.addr;
         sys_event_queue_send(&app_event);
         break;
     default:
@@ -130,7 +124,6 @@ void ble_mesh_config_server_cb(esp_ble_mesh_cfg_server_cb_event_t event,
             param->value.state_change.mod_app_bind.app_idx,
             param->value.state_change.mod_app_bind.model_id);
             
-        // Gửi sự kiện để app_logic có thể lưu lại app_idx nếu cần
         // app_event_t app_event = { .type = EVENT_MESH_CONFIG_RECEIVED };
         // event.data.config.app_idx = param->value.state_change.mod_app_bind.app_idx;
         // sys_event_queue_send(&app_event);

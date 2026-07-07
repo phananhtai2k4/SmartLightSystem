@@ -6,10 +6,8 @@
 #include "esp_log.h"
 #include "esp_ble_mesh_common_api.h"
 #include "esp_ble_mesh_defs.h"
-// Nhúng các file header cần thiết
 #include "ble_mesh_core.h"
-// #include "ble_mesh_composition.h" // Để truy cập biến 'composition'
-#include "sys_nvs.h" // Để truy cập thông tin mạng đã lưu
+#include "sys_nvs.h"
 #include "esp_ble_mesh_networking_api.h"
 #include "esp_ble_mesh_generic_model_api.h"
 #include "esp_bt_device.h"
@@ -19,10 +17,10 @@
 #include "board_hal.h"
 #define TAG "BLE_MESH_CORE"
 
-// Biến static để theo dõi Transaction ID (TID) cho các tin nhắn gửi đi
+// Biến để theo dõi Transaction ID (TID) cho các tin nhắn gửi đi
 static uint8_t tid = 0;
 static uint8_t dev_uuid[16] = { 0xdd, 0xdd };
-extern esp_ble_mesh_comp_t composition; // Biến này được định nghĩa trong file ble_mesh_composition.c
+extern esp_ble_mesh_comp_t composition;
 /*
  * =====================================================================================
  * LOGIC KHỞI TẠO
@@ -78,7 +76,7 @@ esp_err_t self_bind_vendor_model(uint16_t element_addr, uint16_t app_idx,
     for (int i = 0; i < ARRAY_SIZE(model->keys); i++) {
         if (model->keys[i] == app_idx) {
             ESP_LOGW(TAG, "self_bind: AppKey 0x%04x đã được bind vào model này rồi.", app_idx);
-            return ESP_OK; // Đã được bind, không cần làm gì thêm
+            return ESP_OK; // Đã được bind
         }
     }
 
@@ -100,16 +98,13 @@ esp_err_t self_bind_vendor_model(uint16_t element_addr, uint16_t app_idx,
  */
 void auto_rebind_on_startup(void)
 {
-    // 1. Kiểm tra xem thiết bị đã được provision chưa
     if (!esp_ble_mesh_node_is_provisioned()) {
         ESP_LOGI(TAG, "Thiết bị chưa được provision, bỏ qua tự bind.");
         return;
     }
     ESP_LOGI(TAG, "Thiết bị đã được provision, tiến hành tự bind lại các model.");
-    // 3. Thực hiện bind lại
-    // Lấy địa chỉ unicast của chính node này
     uint16_t self_addr = esp_ble_mesh_get_primary_element_address();
-    uint16_t app_idx = 0; // Giả định AppKey đầu tiên luôn là index 0
+    uint16_t app_idx = 0;
     // Bind lại Control Server
     self_bind_vendor_model(self_addr, app_idx, MESH_VND_MODEL_ID_CONTROL_SERVER, CID_ESP);
 
@@ -127,18 +122,14 @@ esp_err_t ble_mesh_core_init(void)
     esp_err_t err;
     ble_mesh_get_dev_uuid(dev_uuid);
 
-    // 1. Cài đặt thông tin provisioning
-    // setup_provisioning_info();
-
-    // 2. Đăng ký tất cả các hàm callback
+    // đăng ký tất cả các hàm callback
     esp_ble_mesh_register_prov_callback(ble_mesh_provisioning_cb);
     esp_ble_mesh_register_config_server_callback(ble_mesh_config_server_cb);
     esp_ble_mesh_register_generic_server_callback(ble_mesh_generic_server_cb);
     esp_ble_mesh_register_generic_client_callback(ble_mesh_generic_client_cb);
     esp_ble_mesh_register_custom_model_callback(ble_mesh_custom_model_cb);
 
-    // 3. Khởi tạo BLE Mesh stack với cấu trúc node đã định nghĩa
-    // Biến 'composition' được lấy từ file ble_mesh_composition.c
+    // Khởi tạo BLE Mesh stack
     err = esp_ble_mesh_init(&provision_info, &composition);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Không thể khởi tạo mesh stack (err %d)", err);
@@ -173,7 +164,6 @@ esp_err_t ble_mesh_core_init(void)
 // Hàm nội bộ để điền các tham số chung cho việc gửi tin nhắn client
 static void setup_common_client_params(esp_ble_mesh_client_common_param_t *common, uint16_t dest_addr, uint32_t opcode)
 {
-    // Lấy model handle từ biến 'onoff_client' đã được khai báo trong composition.c
     extern esp_ble_mesh_client_t onoff_client;
 
     common->opcode = opcode;
@@ -224,10 +214,8 @@ esp_err_t ble_mesh_core_send_onoff_set(uint16_t dest_addr, uint8_t onoff)
 
 esp_err_t ble_mesh_core_publish_onoff_status_by_button(void)
 {
-    // Lấy model handle từ biến 'onoff_server' đã được khai báo trong composition.c
     extern esp_ble_mesh_gen_onoff_srv_t onoff_server;
 
-    // Trạng thái onoff được lưu trong srv->state.onoff
     uint8_t current_state = onoff_server.state.onoff;
     if (current_state == 0) {
         current_state = OFF_LED_BY_BUTTON; // Tắt
@@ -252,10 +240,8 @@ esp_err_t ble_mesh_core_publish_onoff_status_by_button(void)
 
 esp_err_t ble_mesh_core_publish_onoff_status_by_app(void)
 {
-    // Lấy model handle từ biến 'onoff_server' đã được khai báo trong composition.c
     extern esp_ble_mesh_gen_onoff_srv_t onoff_server;
 
-    // Trạng thái onoff được lưu trong srv->state.onoff
     uint8_t current_state = onoff_server.state.onoff;
     if (current_state == 0) {
         current_state = OFF_LED_BY_APP; // Tắt
@@ -263,7 +249,6 @@ esp_err_t ble_mesh_core_publish_onoff_status_by_app(void)
         current_state = ON_LED_BY_APP; // Bật
     }
 
-    // Publish tin nhắn status
     esp_err_t err = esp_ble_mesh_model_publish(onoff_server.model, 
                                                ESP_BLE_MESH_MODEL_OP_GEN_ONOFF_STATUS,
                                                sizeof(current_state), 
@@ -280,10 +265,8 @@ esp_err_t ble_mesh_core_publish_onoff_status_by_app(void)
 
 esp_err_t ble_mesh_core_publish_onoff_status_by_leakage(void)
 {
-    // Lấy model handle từ biến 'onoff_server' đã được khai báo trong composition.c
     extern esp_ble_mesh_gen_onoff_srv_t onoff_server;
 
-    // Trạng thái onoff được lưu trong srv->state.onoff
     uint8_t current_state = onoff_server.state.onoff;
     if (current_state == 0) {
         current_state = OFF_LED_BY_LEAKAGE; // Tắt
@@ -291,7 +274,6 @@ esp_err_t ble_mesh_core_publish_onoff_status_by_leakage(void)
         current_state = ON_LED_BY_LEAKAGE; // Bật
     }
 
-    // Publish tin nhắn status
     esp_err_t err = esp_ble_mesh_model_publish(onoff_server.model, 
                                                ESP_BLE_MESH_MODEL_OP_GEN_ONOFF_STATUS,
                                                sizeof(current_state), 
@@ -306,7 +288,6 @@ esp_err_t ble_mesh_core_publish_onoff_status_by_leakage(void)
     return err;
 }
 
-// esp_err_t esp_ble_mesh_node_local_reset(void)
 esp_err_t ble_mesh_core_node_local_reset(void)
 {
     ESP_LOGI(TAG, "Đang thực hiện local reset cho BLE Mesh Node...");
@@ -375,8 +356,6 @@ esp_err_t ble_mesh_core_send_vendor_response(const esp_ble_mesh_msg_ctx_t *ctx,
     
     ESP_LOGI(TAG, "Đang gửi phản hồi vendor: opcode=0x%06" PRIx32 ", len=%d, đến addr=0x%04x",
              opcode, length, ctx->addr);
-             
-    // In ra payload sẽ gửi đi để gỡ lỗi
     ESP_LOG_BUFFER_HEX(TAG, payload, length);
     err = esp_ble_mesh_server_model_send_msg(&vnd_models_root[1],
                                            (esp_ble_mesh_msg_ctx_t *)ctx,

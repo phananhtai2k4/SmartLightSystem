@@ -37,19 +37,6 @@ const char* device_get_sdk_version(void);
 const char *device_get_software_version(void);
 
 /**
- * @brief Xây dựng Device UUID tùy chỉnh theo định dạng của công ty.
- * 
- * UUID Format (16 bytes):
- * - Byte 0-1:   Magic bytes (e.g., 0xDD, 0xDD) for company identification.
- * - Byte 2-7:   Device MAC Address (6 bytes) for uniqueness.
- * - Byte 8-9:   Device Type (2 bytes, big-endian).
- * - Byte 10-15: Software Version (6 bytes, represented as 3x uint16_t, big-endian).
- * 
- * @param dev_uuid Con trỏ đến mảng 16 byte để lưu UUID.
- */
-void ble_mesh_get_dev_uuid_vcx(uint8_t *dev_uuid);
-
-/**
  * @brief Lấy loại thiết bị dưới dạng số nguyên (int).
  * 
  * Sử dụng để lấy mã sản phẩm từ Kconfig, ví dụ: 3017.

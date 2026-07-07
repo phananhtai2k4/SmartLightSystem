@@ -13,20 +13,15 @@ static const char *TAG = "BUTTON";
 // Scan period
 #define BUTTON_SCAN_PERIOD_MS   10
 
-// Ngưỡng thời gian (tính theo số lần lặp, mỗi lần = 10ms)
-#define BUTTON_WAIT_SHORT       5       // Phát hiện bấm ngay
-#define BUTTON_WAIT_3S          300     // 3 giây = 300 * 10ms
-#define BUTTON_WAIT_5S          500     // 7 giây = 700 * 10ms
-// Có thể thêm:
-// #define BUTTON_WAIT_5S          500     // 5 giây
-// #define BUTTON_WAIT_10S         1000    // 10 giây
+#define BUTTON_WAIT_SHORT       5
+#define BUTTON_WAIT_3S          300
+#define BUTTON_WAIT_5S          500
 
 // Trạng thái button
 static uint8_t button_state_prev = 0;   // Trạng thái trước
 static uint8_t button_state_cur = 0;    // Trạng thái hiện tại
 static uint16_t button_repeat = 0;      // Đếm số lần lặp
 
-// Flags để track event đã gửi chưa
 static bool event_pressed_sent = false;
 static bool event_3s_sent = false;
 static bool event_5s_sent = false;
@@ -53,17 +48,14 @@ static void button_state_change(uint8_t cur_state, uint16_t repeat)
         if (repeat == BUTTON_WAIT_SHORT) {
             ESP_LOGI(TAG, "Button PRESSED");
             
-            // Reset flags
             event_pressed_sent = true;
             event_3s_sent = false;
             event_5s_sent = false;
             board_led_change_relay_state();
             
-            // Gửi event pressed
             app_event_t evt = { .type = EVENT_BUTTON_PRESSED };
             sys_event_queue_send(&evt);
         }
-        // Mốc 3 giây
         if (repeat == BUTTON_WAIT_3S && !event_3s_sent) {
             ESP_LOGI(TAG, "Button HOLD 3S");
             event_3s_sent = true;
@@ -71,8 +63,6 @@ static void button_state_change(uint8_t cur_state, uint16_t repeat)
             app_event_t evt = { .type = EVENT_BUTTON_HOLD_3S };
             sys_event_queue_send(&evt);
         }
-        
-        // Mốc 7 giây
         if (repeat == BUTTON_WAIT_5S && !event_5s_sent) {
             ESP_LOGI(TAG, "Button HOLD 7S");
             event_5s_sent = true;
@@ -86,11 +76,9 @@ static void button_state_change(uint8_t cur_state, uint16_t repeat)
     if (cur_state == 0 && button_state_prev != 0) {
         ESP_LOGI(TAG, "Button RELEASED (held for %d x 10ms)", repeat);
         
-        // Gửi event released
         app_event_t evt = { .type = EVENT_BUTTON_RELEASED };
         sys_event_queue_send(&evt);
         
-        // Reset flags
         event_pressed_sent = false;
         event_3s_sent = false;
         event_5s_sent = false;
@@ -112,13 +100,11 @@ static void button_process(void)
         button_repeat = 0;
     }
     
-    // Xử lý thay đổi trạng thái
     button_state_change(button_state_cur, button_repeat);
 }
 
 static void send_current_status_process(void)
 {
-    // Gửi trạng thái hiện tại lên mạng mỗi 30 giây
     static uint32_t counter = 0;
     
     static uint8_t last_sent_onoff = 0;
@@ -127,7 +113,7 @@ static void send_current_status_process(void)
     counter++;
     
     // if (counter >= 1000 || ((abs(saved_status.light_lux - last_sent_lux) > 20 || abs(saved_status.current_ma - last_sent_current) > 20) && counter >= 200)) {
-    if (counter >= 1000) {
+    if (counter >= 1500) {
         last_sent_onoff = saved_status.onoff;
         last_sent_lux = saved_status.light_lux;
         last_sent_current = saved_status.current_ma;
@@ -156,7 +142,6 @@ static void task_button(void *parm)
  */
 esp_err_t board_button_init(void)
 {
-    // Cấu hình GPIO
     gpio_config_t io_conf = {
         .intr_type = GPIO_INTR_DISABLE,
         .mode = GPIO_MODE_INPUT,
@@ -171,7 +156,6 @@ esp_err_t board_button_init(void)
         return ret;
     }
     
-    // Khởi tạo trạng thái
     button_state_prev = 0;
     button_state_cur = 0;
     button_repeat = 0;
@@ -179,7 +163,6 @@ esp_err_t board_button_init(void)
     event_3s_sent = false;
     event_5s_sent = false;
     
-    // Tạo task
     BaseType_t task_ret = xTaskCreate(
         task_button,
         "button_task",

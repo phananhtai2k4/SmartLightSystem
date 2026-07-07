@@ -29,21 +29,21 @@ esp_err_t board_hal_init(void)
     ESP_LOGI(TAG, "Đang khởi tạo Lớp trừu tượng phần cứng (HAL)...");
     esp_err_t err;
 
-    // 1. Khởi tạo module LED
+    //Khởi tạo module LED
     err = board_led_init();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Khởi tạo module LED thất bại!");
         return err;
     }
 
-    // 2. Khởi tạo module nút bấm
+    //Khởi tạo module nút bấm
     err = board_button_init();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Khởi tạo module nút bấm thất bại!");
         return err;
     }
 
-    // 3. Khởi tạo module ADC
+    //Khởi tạo module ADC
     err = board_adc_init();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Khởi tạo module ADC thất bại!");

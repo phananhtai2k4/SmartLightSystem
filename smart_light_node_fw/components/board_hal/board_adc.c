@@ -176,7 +176,6 @@ esp_err_t board_adc_init(void)
 	return ESP_OK;
 }
 
-//xóa task ADC khi không cần thiết nữa
 void board_adc_deinit(void)
 {
 	if (adc_task_handle != NULL) {

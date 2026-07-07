@@ -14,8 +14,6 @@
 
 #define TAG "APP_LOGIC_HANDLER"
 
-// Khai báo biến extern để truy cập trực tiếp vào trạng thái của OnOff Server model
-// Điều này cần thiết để cập nhật trạng thái logic của model.
 extern esp_ble_mesh_gen_onoff_srv_t onoff_server;
 /**
  * @brief Xử lý một sự kiện OnOff Set nhận được từ mạng BLE Mesh.
@@ -25,12 +23,6 @@ static void handle_onoff_set_event(const event_data_onoff_set_t *onoff_data)
     ESP_LOGI(TAG, "Xử lý sự kiện OnOff Set: state=%d từ src=0x%04x", 
              onoff_data->onoff_state, onoff_data->ctx.addr);
 
-    // 1. Cập nhật trạng thái logic của model
-    // onoff_server.state.onoff = onoff_data->onoff_state;
-    
-    // 2. Điều khiển phần cứng vật lý (relay và đèn LED trạng thái)
-    // Giả sử có hàm board_relay_set_state() trong board_hal
-    // board_relay_set_state(onoff_data->onoff_state); 
     board_led_set_state(RELAY_STATE_LED, onoff_data->onoff_state ? LED_STATE_ON : LED_STATE_OFF);
     vTaskDelay(50 / portTICK_PERIOD_MS);
     ble_mesh_core_publish_onoff_status_by_app();
@@ -44,13 +36,10 @@ static void handle_button_press_event(void)
 {
     ESP_LOGI(TAG, "Xử lý sự kiện nhấn nút...");
 
-    // Logic: Đảo ngược trạng thái hiện tại của relay
     uint8_t new_state = board_led_get_relay_state();
 
-    // 1. Cập nhật trạng thái logic của model
     onoff_server.state.onoff = new_state;
 
-    // 4. Publish trạng thái mới lên mạng để các thiết bị khác đồng bộ
     vTaskDelay(50 / portTICK_PERIOD_MS);
     ble_mesh_core_publish_onoff_status_by_button();
     vTaskDelay(50 / portTICK_PERIOD_MS);
@@ -77,7 +66,6 @@ void app_event_handler(const app_event_t *event)
     switch (event->type) {
     case EVENT_SYSTEM_STARTUP:
         ESP_LOGI(TAG, "Sự kiện: Hệ thống khởi động.");
-        // Khi khởi động, đọc trạng thái đã lưu từ NVS
         if (sys_nvs_load_device_status(&saved_status) == ESP_OK) {
             ESP_LOGI(TAG, "Đã tìm thấy trạng thái đã lưu, khôi phục onoff = %d, lux=%d, current=%dmA", saved_status.onoff, saved_status.light_lux, saved_status.current_ma);
             onoff_server.state.onoff = saved_status.onoff;
@@ -108,7 +96,6 @@ void app_event_handler(const app_event_t *event)
         handle_button_press_event();
         break;
 
-    // Thêm các case khác ở đây, ví dụ:
     case EVENT_BUTTON_HOLD_3S:
         ESP_LOGI(TAG, "Sự kiện: Nhấn giữ nút 3 giây");
         #if COMPLEX_NODE
@@ -126,7 +113,6 @@ void app_event_handler(const app_event_t *event)
         
     case EVENT_BUTTON_HOLD_5S:
         ESP_LOGI(TAG, "Sự kiện: Nhấn giữ nút 5 giây");
-        // Thực hiện chức năng khác nếu cần
         break;
 
     case EVENT_LEAKAGE_CURRENT_DETECTED:

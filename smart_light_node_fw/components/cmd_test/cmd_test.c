@@ -43,7 +43,5 @@ esp_err_t cmd_test_start(void)
         ESP_LOGE(TAG, "Không thể bắt đầu REPL: %s", esp_err_to_name(err));
         return err;
     }
-
-    // Dòng này sẽ không bao giờ được thực thi nếu esp_console_start_repl chạy thành công
     return ESP_OK;
 }

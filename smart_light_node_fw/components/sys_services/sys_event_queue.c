@@ -13,15 +13,7 @@
 #define EVENT_QUEUE_LENGTH    10 // Số lượng sự kiện tối đa có thể chứa trong hàng đợi
 #define EVENT_QUEUE_ITEM_SIZE sizeof(app_event_t)
 
-// Biến static để giữ handle của hàng đợi.
-// Nó là riêng tư, không thể truy cập từ bên ngoài file này.
 static QueueHandle_t app_event_queue = NULL;
-
-/*
- * =====================================================================================
- * CÁC HÀM API CÔNG KHAI (được định nghĩa trong sys_event_queue.h)
- * =====================================================================================
- */
 
 esp_err_t sys_event_queue_init(void)
 {
@@ -61,21 +53,16 @@ bool sys_event_queue_send(const app_event_t *event)
 bool sys_event_queue_send_from_isr(const app_event_t *event)
 {
     if (app_event_queue == NULL) {
-        // Không thể log từ ISR, nhưng đây là một lỗi nghiêm trọng
         return false;
     }
 
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-    // Sử dụng phiên bản an toàn cho ISR của xQueueSend.
-    // Nó không block và có thể đánh thức một tác vụ có độ ưu tiên cao hơn.
     if (xQueueSendFromISR(app_event_queue, event, &xHigherPriorityTaskWoken) != pdPASS) {
         // Hàng đợi đầy
         return false;
     }
 
-    // Nếu việc gửi sự kiện đã đánh thức một tác vụ có độ ưu tiên cao hơn,
-    // chúng ta cần yêu cầu chuyển ngữ cảnh ngay lập tức.
     if (xHigherPriorityTaskWoken) {
         portYIELD_FROM_ISR();
     }
@@ -90,8 +77,6 @@ bool sys_event_queue_receive(app_event_t *event, TickType_t timeout)
         return false;
     }
 
-    // Chờ để nhận một sự kiện từ hàng đợi.
-    // Hàm này sẽ block tác vụ cho đến khi có sự kiện hoặc hết timeout.
     if (xQueueReceive(app_event_queue, event, timeout) != pdPASS) {
         // Hết thời gian chờ, không có sự kiện nào
         return false;

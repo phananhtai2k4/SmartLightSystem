@@ -24,29 +24,25 @@ void app_main(void)
 
     esp_err_t err;
 
-    // 1. Khởi tạo NVS để đọc/ghi dữ liệu bền bỉ
     err = sys_nvs_init();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Khởi tạo NVS thất bại!");
-        return; // Lỗi nghiêm trọng, không tiếp tục
+        return; 
     }
 
-    // 2. Khởi tạo hàng đợi sự kiện hệ thống
     err = sys_event_queue_init();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Khởi tạo hàng đợi sự kiện thất bại!");
         return;
     }
     cmd_test_start();
-    // 3. Khởi tạo lớp trừu tượng phần cứng (LED, nút bấm, relay...)
-    // Hàm này phải được gọi sau hàng đợi sự kiện vì button init cần nó
+    
     err = board_hal_init();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Khởi tạo Board HAL thất bại!");
         return;
     }
 
-    // 4. Khởi tạo lớp logic ứng dụng (tạo ra main task)
     err = app_logic_init();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Khởi tạo App Logic thất bại!");
@@ -60,7 +56,6 @@ void app_main(void)
     }
     ESP_LOGI(TAG, "Bluetooth đã được khởi tạo.");
 
-    // 5. Khởi tạo lõi BLE Mesh (bước cuối cùng)
     err = ble_mesh_core_init();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Khởi tạo BLE Mesh Core thất bại!");

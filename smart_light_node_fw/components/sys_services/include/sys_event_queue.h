@@ -14,31 +14,17 @@
 #include "esp_ble_mesh_defs.h"
 
 // Định nghĩa tất cả các loại sự kiện có thể xảy ra trong hệ thống.
-// Việc định nghĩa tập trung giúp dễ dàng quản lý và mở rộng.
 typedef enum {
-    // --- Sự kiện từ nguồn Phần cứng (Board HAL) ---
     EVENT_BUTTON_PRESSED,
     EVENT_BUTTON_RELEASED,
     EVENT_BUTTON_HOLD_3S,
     EVENT_BUTTON_HOLD_5S,
-
-    // --- Sự kiện từ nguồn BLE Mesh Core ---
-    EVENT_MESH_PROV_COMPLETE,           // Provisioning hoàn tất
-    EVENT_MESH_CONFIG_RECEIVED,         // Nhận được thông tin cấu hình (ví dụ: AppKey bind)
-    EVENT_MESH_GENERIC_ONOFF_SET_RECEIVED, // Nhận được lệnh OnOff Set/SetUnack
-
-    // --- Sự kiện từ nguồn Networking (cho Gateway) ---
-    // EVENT_WIFI_CONNECTED,
-    // EVENT_WIFI_DISCONNECTED,
-    // EVENT_MQTT_CMD_RECEIVED,
-
-    // --- Các sự kiện hệ thống khác ---
+    EVENT_MESH_PROV_COMPLETE,
+    EVENT_MESH_CONFIG_RECEIVED,
+    EVENT_MESH_GENERIC_ONOFF_SET_RECEIVED,
     EVENT_SYSTEM_STARTUP,
-    //phát hiện dòng rò
     EVENT_LEAKAGE_CURRENT_DETECTED,
 } app_event_type_t;
-
-// --- Định nghĩa cấu trúc dữ liệu đi kèm cho từng loại sự kiện ---
 
 // Dữ liệu cho sự kiện nút bấm
 typedef struct {
@@ -58,8 +44,6 @@ typedef struct {
         // Mỗi loại sự kiện có thể có dữ liệu đi kèm riêng
         event_data_button_t         button;
         event_data_onoff_set_t      onoff_set;
-        // Thêm các loại dữ liệu khác ở đây
-        // event_data_mqtt_cmd_t    mqtt_cmd;
     } data;
 } app_event_t;
 

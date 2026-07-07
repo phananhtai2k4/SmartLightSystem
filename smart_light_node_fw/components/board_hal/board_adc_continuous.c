@@ -34,7 +34,6 @@
 #define EXAMPLE_ADC_GET_DATA(p_data)        ((p_data)->type2.data)
 #endif
 
-// User required read length
 #define EXAMPLE_READ_LEN                    4000
 #define RMS_CALIBRATION_FACTOR              0.00054317
 static adc_channel_t channel[2] = {ADC_CHANNEL_4, ADC_CHANNEL_7}; // ADC_CHANNEL_4 = GPIO32, ADC_CHANNEL_7 = GPIO35
@@ -55,7 +54,7 @@ static void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc
     adc_continuous_handle_t handle = NULL;
 
     adc_continuous_handle_cfg_t adc_config = {
-        .max_store_buf_size = 8192, // Needs to be larger than conv_frame_size
+        .max_store_buf_size = 8192,
         .conv_frame_size = EXAMPLE_READ_LEN,
     };
     ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &handle));
@@ -121,7 +120,7 @@ void board_adc_rms_task(void *pvParameters)
                 }
                 
                 double ch_max[2] = {0.0, 0.0};
-                double ch_min[2] = {4096.0, 4096.0}; // Khởi tạo với giá trị lớn để tìm min đúng
+                double ch_min[2] = {4096.0, 4096.0};
                 double ch_sum[2] = {0.0, 0.0};
                 uint32_t ch_valid_count[2] = {0, 0};
 
@@ -186,7 +185,7 @@ void board_adc_rms_task(void *pvParameters)
                             do_save = true;
                             if (i == 0) {
                                 sys_nvs_save_device_status(&saved_status);
-                            } else if (i == 1) { //tôi muốn bị rò trong 3 giây mới gửi event
+                            } else if (i == 1) {
                                 // if (rms_current > 0) {
                                 if (rms_current >= 0.04 && saved_status.onoff == 1) {
                                     if (last_leakage_time == 0) {

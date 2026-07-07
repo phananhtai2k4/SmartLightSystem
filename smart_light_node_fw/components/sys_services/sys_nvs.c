@@ -5,7 +5,7 @@
 #include "nvs_flash.h"
 #include "nvs.h"
 #include "esp_log.h"
-#include "sys_nvs.h" // Nhúng file header công khai
+#include "sys_nvs.h"
 #include "board_hal.h"
 
 #define TAG "SYS_NVS"
@@ -13,10 +13,8 @@
 boot_flag_t boot_flag;
 // --- Định nghĩa các hằng số cho NVS ---
 
-// Namespace là một "thư mục" logic để tránh xung đột tên khóa với các component khác.
 #define NVS_NAMESPACE "smart_relay"
 
-// Định nghĩa tên các "khóa" (key) để lưu các mẩu dữ liệu khác nhau.
 #define KEY_DEVICE_STATUS "device_status"
 #define KEY_BLE_MESH_INFO "ble_mesh_info"
 
@@ -31,17 +29,15 @@ device_status_t saved_status;
 
 esp_err_t sys_nvs_init(void)
 {
-    // 1. Khởi tạo phân vùng NVS flash một lần duy nhất cho toàn bộ hệ thống.
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        // Nếu NVS bị lỗi hoặc phiên bản không tương thích, xóa và khởi tạo lại.
         ESP_LOGW(TAG, "NVS partition is corrupted or in new version, erasing...");
         ESP_ERROR_CHECK(nvs_flash_erase());
         err = nvs_flash_init();
     }
     ESP_ERROR_CHECK(err);
 
-    // 2. Mở namespace của ứng dụng để đọc/ghi.
+    //Mở namespace của ứng dụng để đọc/ghi.
     ESP_LOGI(TAG, "Đang mở NVS namespace: '%s'", NVS_NAMESPACE);
     err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &nvs_app_handle);
     if (err != ESP_OK) {
