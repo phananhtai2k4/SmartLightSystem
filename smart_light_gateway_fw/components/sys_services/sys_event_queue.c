@@ -33,7 +33,7 @@ static esp_err_t _queue_send(QueueHandle_t queue, const void *item, TickType_t t
         return ESP_ERR_INVALID_ARG;
     }
     if (xQueueSend(queue, item, timeout) != pdPASS) {
-        // Lỗi này thường xảy ra khi hàng đợi đầy và timeout = 0
+        //hàng đợi đầy và timeout = 0
         return ESP_ERR_TIMEOUT;
     }
     return ESP_OK;
@@ -46,7 +46,7 @@ static esp_err_t _queue_send_from_isr(QueueHandle_t queue, const void *item) {
     }
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     if (xQueueSendFromISR(queue, item, &xHigherPriorityTaskWoken) != pdPASS) {
-        // Lỗi này xảy ra khi hàng đợi đầy
+        // hàng đợi đầy
         return ESP_FAIL;
     }
     if (xHigherPriorityTaskWoken) {
@@ -61,7 +61,6 @@ static esp_err_t _queue_receive(QueueHandle_t queue, void *item, TickType_t time
         return ESP_ERR_INVALID_ARG;
     }
     if (xQueueReceive(queue, item, timeout) != pdPASS) {
-        // Lỗi này thường xảy ra khi không có item nào trong hàng đợi và hết thời gian chờ
         return ESP_ERR_TIMEOUT;
     }
     return ESP_OK;
@@ -98,7 +97,6 @@ esp_err_t sys_event_queue_init(void) {
 }
 
 esp_err_t sys_event_queue_send(const app_event_t *event) {
-    // Timeout = 0 có nghĩa là không chờ đợi nếu hàng đợi đầy, trả về lỗi ngay lập tức.
     esp_err_t err = _queue_send(g_sys_event_queue, event, (TickType_t)0);
     if (err != ESP_OK) {
         ESP_LOGW(TAG, "Gửi sự kiện thất bại, mã lỗi: 0x%x", err);
@@ -111,7 +109,6 @@ esp_err_t sys_event_queue_send_from_isr(const app_event_t *event) {
 }
 
 esp_err_t sys_event_queue_receive(app_event_t *event, TickType_t timeout) {
-    // Không cần log lỗi ở đây vì ESP_ERR_TIMEOUT là một trường hợp bình thường
     return _queue_receive(g_sys_event_queue, event, timeout);
 }
 

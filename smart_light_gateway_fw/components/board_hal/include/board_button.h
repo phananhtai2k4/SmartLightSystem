@@ -3,7 +3,6 @@
 
 #include "esp_err.h"
 
-// Button GPIO Pin
 #define BUTTON_GPIO     0
 
 /**

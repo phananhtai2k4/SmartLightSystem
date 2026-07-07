@@ -32,17 +32,16 @@ void handle_onoff_set_event(const event_data_onoff_set_t *onoff_data)
 
 static void decode_device_status(uint8_t *data, uint8_t len, device_status_t *st)
 {
-    // ESP_LOGI(TAG, "Giải mã device status từ payload, length %d", len);
     // ESP_LOG_BUFFER_HEX("Device Status Data", data, len);
     uint8_t *p = data;
     uint8_t *end = data + len;
 
-    while (p + 2 <= end) // đảm bảo còn type + len
+    while (p + 2 <= end)
     {
         uint8_t type = *p++;
         uint8_t length = *p++;
 
-        if (p + length > end) break; // tránh overflow
+        if (p + length > end) break;
 
         switch (type)
         {

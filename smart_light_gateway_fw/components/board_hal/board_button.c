@@ -10,20 +10,15 @@ static const char *TAG = "BUTTON";
 // Scan period
 #define BUTTON_SCAN_PERIOD_MS   10
 
-// Ngưỡng thời gian (tính theo số lần lặp, mỗi lần = 10ms)
-#define BUTTON_WAIT_SHORT       5       // Phát hiện bấm ngay
-#define BUTTON_WAIT_3S          300     // 3 giây = 300 * 10ms
-#define BUTTON_WAIT_5S          500     // 7 giây = 700 * 10ms
-// Có thể thêm:
-// #define BUTTON_WAIT_5S          500     // 5 giây
-// #define BUTTON_WAIT_10S         1000    // 10 giây
+#define BUTTON_WAIT_SHORT       5       // 50ms
+#define BUTTON_WAIT_3S          300     // 3s
+#define BUTTON_WAIT_5S          500     // 5s
 
 // Trạng thái button
 static uint8_t button_state_prev = 0;   // Trạng thái trước
 static uint8_t button_state_cur = 0;    // Trạng thái hiện tại
 static uint16_t button_repeat = 0;      // Đếm số lần lặp
 
-// Flags để track event đã gửi chưa
 static bool event_pressed_sent = false;
 static bool event_3s_sent = false;
 static bool event_5s_sent = false;
@@ -50,12 +45,10 @@ static void button_state_change(uint8_t cur_state, uint16_t repeat)
         if (repeat == BUTTON_WAIT_SHORT) {
             ESP_LOGI(TAG, "Button PRESSED");
             
-            // Reset flags
             event_pressed_sent = true;
             event_3s_sent = false;
             event_5s_sent = false;
             
-            // Gửi event pressed
             app_event_t evt = { .type = EVENT_BUTTON_PRESSED };
             sys_event_queue_send(&evt);
         }
@@ -68,7 +61,7 @@ static void button_state_change(uint8_t cur_state, uint16_t repeat)
             sys_event_queue_send(&evt);
         }
         
-        // Mốc 7 giây
+        // Mốc 5 giây
         if (repeat == BUTTON_WAIT_5S && !event_5s_sent) {
             ESP_LOGI(TAG, "Button HOLD 7S");
             event_5s_sent = true;
@@ -81,7 +74,6 @@ static void button_state_change(uint8_t cur_state, uint16_t repeat)
     // Phát hiện BUTTON RELEASED (từ 1 -> 0)
     if (cur_state == 0 && button_state_prev != 0) {
         ESP_LOGI(TAG, "Button RELEASED (held for %d x 10ms)", repeat);
-        // Reset flags
         event_pressed_sent = false;
         event_3s_sent = false;
         event_5s_sent = false;
@@ -96,14 +88,12 @@ static void button_process(void)
     button_state_prev = button_state_cur;
     button_state_cur = button_analys();
     
-    // Nếu trạng thái giống nhau thì tăng repeat counter
     if (button_state_prev == button_state_cur) {
         button_repeat++;
     } else {
         button_repeat = 0;
     }
     
-    // Xử lý thay đổi trạng thái
     button_state_change(button_state_cur, button_repeat);
 }
 

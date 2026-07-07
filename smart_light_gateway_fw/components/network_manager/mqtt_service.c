@@ -219,7 +219,7 @@ int mqtt_service_publish(const char *topic, const char *data, int len, int qos, 
     return esp_mqtt_client_publish(client, topic, data, len, qos, retain);
 }
 
-// GỢI Ý: Thêm hàm stop và deinit để dọn dẹp tài nguyên
+//hàm stop và deinit để dọn dẹp tài nguyên
 esp_err_t mqtt_service_stop_and_deinit(void) {
     if (!client) {
         return ESP_OK; // Chưa được khởi tạo, không có gì để làm

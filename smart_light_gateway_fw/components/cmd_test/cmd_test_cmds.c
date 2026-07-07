@@ -154,14 +154,9 @@ static void _register_test_cmd_off(void)
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 }
 
-
-/* =========================================================================
- * Hàm Public: Đăng ký tất cả các lệnh
- * =========================================================================*/
 void cmd_test_register_cmds(void)
 {
     _register_test_cmd();
     _register_test_cmd_on();
     _register_test_cmd_off();
-    // Gọi các hàm đăng ký lệnh khác ở đây nếu có
 }

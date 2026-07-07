@@ -34,7 +34,7 @@ static esp_ble_mesh_cfg_srv_t config_server = {
     .relay_retransmit = ESP_BLE_MESH_TRANSMIT(2, 20),
 };
 
-ESP_BLE_MESH_MODEL_PUB_DEFINE(control_srv_pub, 3 + 16, ROLE_NODE); // Opcode (3) + Payload tối đa (ví dụ 4 kênh * 3 byte/kênh)
+ESP_BLE_MESH_MODEL_PUB_DEFINE(control_srv_pub, 3 + 16, ROLE_NODE); // Opcode (3) + Payload tối đa
 static esp_ble_mesh_model_op_t control_srv_op[] = {
     ESP_BLE_MESH_MODEL_OP(MESH_VND_OP_SSW_SET_DATA, 1),
     ESP_BLE_MESH_MODEL_OP(MESH_VND_OP_SSW_GET_DATA, 0),

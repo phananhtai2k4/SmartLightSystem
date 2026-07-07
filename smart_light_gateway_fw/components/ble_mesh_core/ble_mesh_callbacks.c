@@ -20,7 +20,6 @@ static void handle_onoff_state_change(esp_ble_mesh_model_t *model, esp_ble_mesh_
 {
     onoff_server.state.onoff = new_onoff;
 
-    // 2. Đẩy sự kiện đến app_logic để xử lý nghiệp vụ (bật/tắt đèn, lưu NVS)
     app_event_t app_event = { .type = EVENT_MESH_GENERIC_ONOFF_SET_RECEIVED };
     app_event.data.onoff_set.ctx = *ctx;
     app_event.data.onoff_set.onoff_state = new_onoff;
@@ -158,7 +157,6 @@ void ble_mesh_generic_server_cb(esp_ble_mesh_generic_server_cb_event_t event,
             
             handle_onoff_state_change(param->model, &param->ctx, new_state);
 
-            // Logic: Nếu là tin nhắn SET (cần xác nhận), ứng dụng phải tự gửi STATUS trả lời.
             if (param->ctx.recv_op == ESP_BLE_MESH_MODEL_OP_GEN_ONOFF_SET) {
                 ESP_LOGI(TAG, "Gửi lại STATUS để xác nhận lệnh SET");
                 esp_ble_mesh_server_model_send_msg(param->model, &param->ctx,
@@ -238,7 +236,6 @@ void ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
     switch (event) {
     case ESP_BLE_MESH_MODEL_OPERATION_EVT: {
         ESP_LOGI(TAG, "ESP_BLE_MESH_MODEL_OPERATION_EVT");
-        // Kiểm tra model ID để gọi đúng parser
         if (param->model_operation.model->vnd.model_id == MESH_VND_MODEL_ID_CONTROL_SERVER) {
             // ESP_LOGI(TAG, "Control Server Model ID: 0x%04x", param->model_operation.model->vnd.model_id);
             // ESP_LOGI(TAG, "Received opcode: 0x%06" PRIx32, param->model_operation.opcode);

@@ -25,11 +25,10 @@
 
 // --- Lấy từ cả hai ví dụ ---
 static const char *TAG = "WIFI_MANAGER";
-static char *s_ssid = NULL; // Biến toàn cục để lưu SSID
-static char *s_pass = NULL; // Biến toàn cục để lưu mật khẩu
-#define WIFI_MAXIMUM_RETRY  1000 // Giới hạn số lần thử lại
+static char *s_ssid = NULL;
+static char *s_pass = NULL;
+#define WIFI_MAXIMUM_RETRY  1000
 #define WIFI_AP_PASS      ""
-/* FreeRTOS event group để báo hiệu kết nối */
 static EventGroupHandle_t s_wifi_event_group;
 /* Các bit sự kiện */
 #define WIFI_CONNECTED_BIT BIT0
@@ -83,8 +82,7 @@ esp_err_t wifi_manager_switch_to_sta(const char *ssid, const char *pass)
     ESP_LOGI(TAG, "STA started and connecting...");
     return ESP_OK;
 }
-// Event handler này bây giờ chỉ làm nhiệm vụ log và thử kết nối lại.
-// Nó không cần event group nữa vì trạng thái sẽ được quản lý bởi các module cấp cao hơn (như Blufi).
+
 static void event_handler(void* arg, esp_event_base_t event_base,
                                 int32_t event_id, void* event_data)
 {
@@ -151,11 +149,10 @@ esp_err_t wifi_manager_init(void)
     return ESP_OK;
 }
 
-// Hàm này giờ sẽ non-blocking. Nó chỉ cấu hình và bắt đầu quá trình kết nối.
 esp_err_t wifi_manager_connect_start(const char *ssid, const char *pass)
 {
-    s_ssid = (char *)ssid; // Lưu SSID vào biến toàn cục
-    s_pass = (char *)pass; // Lưu mật khẩu vào biến toàn cục
+    s_ssid = (char *)ssid;
+    s_pass = (char *)pass;
     s_retry_num = 0;
     // esp_wifi_disconnect();
 

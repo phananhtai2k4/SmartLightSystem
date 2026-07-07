@@ -85,12 +85,7 @@ static void udp_server_task(void *pvParameters)
                 
                 ESP_LOGI(TAG, "Received %d bytes from %s:", len, addr_str);
                 ESP_LOGI(TAG, "Data: %s", rx_buffer);
-                
-                // Xử lý JSON command
-                device_control_cmd_handle(rx_buffer, 0); // CMD_TYPE_UDP = 0
-                
-                // Optional: Gửi response lại cho client
-                // sendto(udp_server_sock, "OK", 2, 0, (struct sockaddr *)&source_addr, sizeof(source_addr));
+                device_control_cmd_handle(rx_buffer, CMD_TYPE_UDP);
             }
         }
         

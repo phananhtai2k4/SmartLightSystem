@@ -6,7 +6,6 @@
 #include "esp_err.h"
 #include "sys_nvs.h"
 
-// LED GPIO Pin
 #define LED_GPIO    48
 
 // LED Operation Modes

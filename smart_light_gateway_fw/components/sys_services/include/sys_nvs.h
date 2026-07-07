@@ -123,8 +123,8 @@ typedef struct {
 typedef struct {
     uint16_t net_idx;
     uint16_t app_idx;
-    uint16_t primary_addr; // Địa chỉ Unicast của node
-    uint8_t  dev_key[16];  // DevKey rất quan trọng để cấu hình lại nếu cần
+    uint16_t primary_addr;
+    uint8_t  dev_key[16];
 } ble_mesh_info_t;
 
 esp_err_t nvs_storage_init(void);

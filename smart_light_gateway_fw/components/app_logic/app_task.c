@@ -51,7 +51,7 @@ static void app_main_task(void *arg) {
                     ble_mesh_composition_setup_defaults();
                     if (!(boot_flag == BOOT_FLAG_ADDING_GATEWAY_MANUAL)) {
                         // vTaskDelay(pdMS_TO_TICKS(9000));
-                        // wifi_manager_connect_start("Cam-hub","0913456789");
+                        // wifi_manager_connect_start("phantai","26102004");
                         char ssid[32];
                         char pass[64];
                         esp_err_t nvs_storage_read_wifi_creds(char *ssid, size_t ssid_len, char *pass, size_t pass_len);

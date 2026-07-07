@@ -196,12 +196,10 @@ esp_err_t led_service_init(void)
         return ret;
     }
     
-    // Turn off LED initially
     gpio_set_level(LED_GPIO, 0);
     
     ESP_LOGI(TAG, "LED service initialized on GPIO %d", LED_GPIO);
     
-    // Set default mode based on boot flag
     led_service_set_boot_flag(boot_flag);
     
     xTaskCreate(led_update_task, "led_task", 2048*4, NULL, 5, NULL);
