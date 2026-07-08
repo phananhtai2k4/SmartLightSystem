@@ -116,11 +116,11 @@ void ble_mesh_composition_setup_defaults(void)
     control_model->pub->period = 0;
     root_models[1].pub->publish_addr = BLEMESH_TOPIC_CONTROL_SERVER_PUB;
     root_models[1].pub->ttl = 3;
-    root_models[1].pub->retransmit = ESP_BLE_MESH_PUBLISH_TRANSMIT(2, 20);
+    root_models[1].pub->retransmit = ESP_BLE_MESH_PUBLISH_TRANSMIT(0, 0);
     root_models[1].pub->app_idx = 0;
     root_models[2].pub->publish_addr = BLEMESH_TOPIC_CONTROL_SERVER_PUB;
     root_models[2].pub->ttl = 3;
-    root_models[2].pub->retransmit = ESP_BLE_MESH_PUBLISH_TRANSMIT(2, 20);
+    root_models[2].pub->retransmit = ESP_BLE_MESH_PUBLISH_TRANSMIT(0, 0);
     root_models[2].pub->app_idx = 0;
     // control_model->groups[0] = BLEMESH_TOPIC_CONTROL_SERVER_PUB;
     // root_models[2].groups[0] = BLEMESH_TOPIC_CONTROL_SERVER_PUB;
