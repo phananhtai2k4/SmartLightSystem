@@ -1,5 +1,7 @@
 # Smart Light System - BLE Mesh & MQTT Gateway
 
+Giải pháp chiếu sáng IoT toàn diện từ thiết bị phần cứng đến ứng dụng di động: Các node đèn giao tiếp qua mạng BLE Mesh giúp mở rộng phạm vi điều khiển linh hoạt và tự động ngắt điện an toàn tại chỗ khi có sự cố dòng rò. Thiết bị Gateway đảm nhiệm việc chuyển đổi giao thức giữa mạng BLE Mesh cục bộ và Internet qua MQTT để đồng bộ dữ liệu thời gian thực lên Cloud. Toàn bộ hệ sinh thái được quản trị tập trung qua Mobile App, cho phép người dùng nạp thiết bị mới vào mạng lưới, theo dõi trạng thái và điều khiển từ xa.
+
 ---
 
 ## 🏗 Kiến trúc hệ thống
