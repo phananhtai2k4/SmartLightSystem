@@ -2,13 +2,13 @@
 
 ---
 
-## 🏗 Kiến trúc hệ thống (System Architecture)
+## 🏗 Kiến trúc hệ thống
 
 <img width="1952" height="665" alt="image" src="https://github.com/user-attachments/assets/36b6599e-bb73-4ad9-9ac1-75021a51a226" />
 
 ---
 
-## 📁 Cấu trúc dự án (Project Structure)
+## 📁 Cấu trúc dự án
 
 Dự án được chia thành 4 phân hệ chính:
 
@@ -21,7 +21,7 @@ Dự án được chia thành 4 phân hệ chính:
 
 ---
 
-## ✨ Tính năng cốt lõi (Core Features)
+## ✨ Tính năng cốt lõi
 
 * **Mở rộng linh hoạt với BLE Mesh:** Các nút đèn tự động kết nối mạng lưới đa điểm, chuyển tiếp bản tin qua nhiều chặng mà không gây tải cho bộ định tuyến Wi-Fi gia đình.
 * **Cầu nối giao thức bất đối xứng (Protocol Bridging):** Gateway tự động ánh xạ giữa định dạng dữ liệu JSON qua MQTT và các gói tin nhị phân BLE Mesh, điều phối qua hệ điều hành thời gian thực FreeRTOS.
@@ -31,7 +31,7 @@ Dự án được chia thành 4 phân hệ chính:
 
 ---
 
-## 🛠 Công nghệ sử dụng (Tech Stack)
+## 🛠 Công nghệ sử dụng
 
 * **Firmware / Embedded:** ESP-IDF (C/C++), FreeRTOS, BLE Mesh SIG Models, ESP32-WROOM-32, ESP32-S3.
 * **Phần cứng:** Module nguồn hạ áp AC-DC, Module Relay đóng ngắt tải, Biến dòng ZMCT103C, Quang trở LDR, Kit Yolo UNO, ESP32.
