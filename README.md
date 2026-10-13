@@ -26,8 +26,8 @@ Dự án được chia thành 4 phân hệ chính:
 ## ✨ Tính năng cốt lõi
 
 * **Mở rộng linh hoạt với BLE Mesh:** Các nút đèn tự động kết nối mạng lưới đa điểm, chuyển tiếp bản tin qua nhiều chặng mà không gây tải cho bộ định tuyến Wi-Fi gia đình.
-* **Cầu nối giao thức bất đối xứng (Protocol Bridging):** Gateway tự động ánh xạ giữa định dạng dữ liệu JSON qua MQTT và các gói tin nhị phân BLE Mesh, điều phối qua hệ điều hành thời gian thực FreeRTOS.
-* **Bảo vệ an toàn điện chủ động tại biên (Edge Fail-safe):** Node đèn đo lường và tính toán dòng rò sai biệt trực tiếp tại biên; tự động ngắt relay bảo vệ độc lập ngay cả khi mất toàn bộ kết nối mạng Internet.
+* **Cầu nối giao thức bất đối xứng:** Gateway tự động ánh xạ giữa định dạng dữ liệu JSON qua MQTT và các gói tin nhị phân BLE Mesh, điều phối qua hệ điều hành thời gian thực FreeRTOS.
+* **Bảo vệ an toàn điện chủ động tại biên:** Node đèn đo lường và tính toán dòng rò sai biệt trực tiếp tại biên; tự động ngắt relay bảo vệ độc lập ngay cả khi mất toàn bộ kết nối mạng Internet.
 * **Cấu hình & Provisioning trực tiếp từ Mobile:** Quét và phân phối cấu hình khóa mạng (NetKey, AppKey, gán địa chỉ Unicast) trực tiếp qua Bluetooth điện thoại bằng chuẩn nRF Mesh.
 * **Đồng bộ dữ liệu thời gian thực:** Lưu trữ lịch sử hoạt động, trạng thái bật/tắt và giám sát cường độ dòng điện qua nền tảng đám mây.
 
